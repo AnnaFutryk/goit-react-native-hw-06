@@ -1,4 +1,4 @@
-import { Text, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import React from "react";
 import { AntDesign, Feather, SimpleLineIcons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -7,13 +7,22 @@ import { PostsScreen } from "./PostsScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { SvgBack, SvgLogOut } from "../images/Svg";
 import { useRoute } from "@react-navigation/native";
+import { useDispatch } from "react-redux";
+import { logOut } from "../redux/auth/authOperations";
 
 const Tabs = createBottomTabNavigator();
 
 export const Home = ({ navigation }) => {
-  const {
-    params: { login, email },
-  } = useRoute();
+  const dispatch = useDispatch();
+
+  const logOutUser = () => {
+    dispatch(logOut()).then((response) => {
+      response.type === "firebase/logOut/fulfilled" &&
+        navigation.navigate("Login");
+      response.type !== "firebase/logOut/fulfilled" &&
+        alert("Ooops something wrong");
+    });
+  };
 
   return (
     <Tabs.Navigator
@@ -42,17 +51,13 @@ export const Home = ({ navigation }) => {
             fontFamily: "Roboto-Medium",
           },
           headerRight: () => (
-            <TouchableOpacity
-              style={styles.logoutBtn}
-              onPress={() => navigation.navigate("Login")}
-            >
+            <TouchableOpacity style={styles.logoutBtn} onPress={logOutUser}>
               <SvgLogOut />
             </TouchableOpacity>
           ),
         }}
         name="PostsScreen"
         component={PostsScreen}
-        initialParams={(login, email)}
       />
       <Tabs.Screen
         options={{

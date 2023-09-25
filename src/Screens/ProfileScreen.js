@@ -8,14 +8,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSelector } from "react-redux";
 import { ProfilePost } from "../Components/ProfilePost";
-import { SvgAdd, SvgLogOut } from "../images/Svg";
+import { SvgAdd, SvgAdded, SvgLogOut } from "../images/Svg";
+import { selectUser } from "../redux/auth/authSelectors";
 
 export const ProfileScreen = () => {
   const navigation = useNavigation();
-  const addAvatar = (event) => {
-    event.preventDefault();
-  };
+
+  const { name, avatar } = useSelector(selectUser);
+
   return (
     <View style={styles.container}>
       <ImageBackground
@@ -32,15 +34,26 @@ export const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
         <View style={styles.avatar}>
-          <Image
-            source={require("../images/avatar.jpg")}
-            style={styles.avatarImage}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={addAvatar}>
-            <SvgAdd />
-          </TouchableOpacity>
+          {avatar ? (
+            <>
+              <Image source={{ uri: `${avatar}` }} style={styles.avatarImage} />
+              <TouchableOpacity
+                style={styles.addButton}
+                // onPress={deleteAvatar}
+              >
+                <SvgAdded />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.addButton}
+              // onPress={addAvatar}
+            >
+              <SvgAdd />
+            </TouchableOpacity>
+          )}
         </View>
-        <Text style={styles.userName}>Natali Romanova</Text>
+        <Text style={styles.userName}>{name}</Text>
         <View style={styles.allPostsWrapper}>
           <ScrollView contentContainerStyle={styles.scroll}>
             <ProfilePost

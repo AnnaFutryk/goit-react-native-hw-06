@@ -11,6 +11,9 @@ import { SvgBack } from "./src/images/Svg";
 import { Home } from "./src/Screens/Home";
 import { CommentsScreen } from "./src/Screens/CommentsScreen";
 import { MapScreen } from "./src/Screens/MapScreen";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { persistor, store } from "./src/redux/store";
 
 const MainStack = createStackNavigator(); // вказує на групу навігаторів
 
@@ -26,67 +29,74 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <MainStack.Navigator style={styles.container} initialRouteName="Login">
-        <MainStack.Screen
-          name="Registration"
-          component={RegistrationScreen}
-          options={{ headerShown: false }}
-        />
-        <MainStack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ headerShown: false }}
-        />
-        <MainStack.Screen
-          name="Home"
-          component={Home}
-          options={{ headerShown: false }}
-        />
-        <MainStack.Screen
-          name="Comments"
-          component={CommentsScreen}
-          options={({ navigation }) => ({
-            title: "Коментарі",
-            headerTitleStyle: {
-              fontSize: 17,
-              textAlign: "center",
-              fontFamily: "Roboto-Medium",
-            },
-            headerLeft: () => (
-              <TouchableOpacity
-                style={styles.backBtn}
-                // onPress={() => navigation.navigate("PostsScreen")}
-                onPress={() => navigation.goBack()}
-              >
-                <SvgBack />
-              </TouchableOpacity>
-            ),
-          })}
-        />
-        <MainStack.Screen
-          name="Map"
-          component={MapScreen}
-          options={({ navigation }) => ({
-            title: "Карта",
-            headerTitleStyle: {
-              fontSize: 17,
-              textAlign: "center",
-              fontFamily: "Roboto-Medium",
-            },
-            headerLeft: () => (
-              <TouchableOpacity
-                style={styles.backBtn}
-                // onPress={() => navigation.navigate("PostsScreen")}
-                onPress={() => navigation.goBack()}
-              >
-                <SvgBack />
-              </TouchableOpacity>
-            ),
-          })}
-        />
-      </MainStack.Navigator>
-    </NavigationContainer>
+    <Provider store={store}>
+      <PersistGate persistor={persistor}>
+        <NavigationContainer>
+          <MainStack.Navigator
+            style={styles.container}
+            initialRouteName="Login"
+          >
+            <MainStack.Screen
+              name="Registration"
+              component={RegistrationScreen}
+              options={{ headerShown: false }}
+            />
+            <MainStack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
+            <MainStack.Screen
+              name="Home"
+              component={Home}
+              options={{ headerShown: false }}
+            />
+            <MainStack.Screen
+              name="Comments"
+              component={CommentsScreen}
+              options={({ navigation }) => ({
+                title: "Коментарі",
+                headerTitleStyle: {
+                  fontSize: 17,
+                  textAlign: "center",
+                  fontFamily: "Roboto-Medium",
+                },
+                headerLeft: () => (
+                  <TouchableOpacity
+                    style={styles.backBtn}
+                    // onPress={() => navigation.navigate("PostsScreen")}
+                    onPress={() => navigation.goBack()}
+                  >
+                    <SvgBack />
+                  </TouchableOpacity>
+                ),
+              })}
+            />
+            <MainStack.Screen
+              name="Map"
+              component={MapScreen}
+              options={({ navigation }) => ({
+                title: "Карта",
+                headerTitleStyle: {
+                  fontSize: 17,
+                  textAlign: "center",
+                  fontFamily: "Roboto-Medium",
+                },
+                headerLeft: () => (
+                  <TouchableOpacity
+                    style={styles.backBtn}
+                    // onPress={() => navigation.navigate("PostsScreen")}
+                    onPress={() => navigation.goBack()}
+                  >
+                    <SvgBack />
+                  </TouchableOpacity>
+                ),
+              })}
+            />
+          </MainStack.Navigator>
+        </NavigationContainer>
+      </PersistGate>
+    </Provider>
   );
 }
 

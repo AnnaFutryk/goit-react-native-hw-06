@@ -1,23 +1,23 @@
-// import { useRoute } from "@react-navigation/native";
 import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
+import { useSelector } from "react-redux";
+import { selectUser } from "../redux/auth/authSelectors";
 import { Post } from "../Components/Post";
 
 export const PostsScreen = () => {
-  // const route = useRoute();
-  // const { login, email } = route.params;
+  const { name, avatar, email } = useSelector(selectUser);
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.userInfo}>
-        <Image
-          style={styles.userAvatar}
-          source={require("../images/avatar.jpg")}
-        />
+        <View style={styles.avaWrapper}>
+          {avatar && (
+            <Image style={styles.userAvatar} source={{ uri: `${avatar}` }} />
+          )}
+        </View>
+
         <View>
-          <Text style={styles.userName}>Natali Romanova</Text>
-          <Text style={styles.userEmail}>email@example.com</Text>
-          {/* <Text style={styles.userName}>{login}</Text>
-          <Text style={styles.userEmail}>{email}</Text> */}
+          <Text style={styles.userName}>{name}</Text>
+          <Text style={styles.userEmail}>{email}</Text>
         </View>
       </View>
       <View style={styles.allPostsWrapper}>
@@ -57,6 +57,13 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     marginTop: 32,
     marginBottom: 32,
+  },
+  avaWrapper: {
+    borderRadius: 16,
+    width: 60,
+    height: 60,
+    marginRight: 8,
+    backgroundColor: "#F6F6F6",
   },
   userAvatar: {
     borderRadius: 16,

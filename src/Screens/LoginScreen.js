@@ -12,8 +12,11 @@ import {
   TextInput,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useDispatch } from "react-redux";
+import { signIn } from "../redux/auth/authOperations";
 
 const validationSchema = object().shape({
   email: string()
@@ -26,6 +29,8 @@ const validationSchema = object().shape({
 
 export const LoginScreen = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+
   const {
     control,
     handleSubmit,
@@ -40,6 +45,7 @@ export const LoginScreen = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [visiblePassword, setVisiblePassword] = useState(false);
 
@@ -47,22 +53,31 @@ export const LoginScreen = () => {
     setVisiblePassword(!visiblePassword);
   };
 
-  const onSubmit = ({ email, password }) => {
-    console.log({
-      Email: email,
-      Password: password,
+  const signInUser = () => {
+    dispatch(signIn({ email, password })).then((response) => {
+      response.type === "firebase/signIn/fulfilled" &&
+        navigation.navigate("Home", { screen: "PostsScreen" });
     });
-
     setEmail("");
     setPassword("");
     reset();
 
-    navigation.navigate("Home", {
-      screen: "PostsScreen",
-      params: {
-        email: email,
-      },
-    });
+    //setLoading(true)
+    // try {
+    //   const response = await signInWithEmailAndPassword(auth, email, password);
+    //   console.log(response);
+    //   navigation.navigate("Home", {
+    //     screen: "PostsScreen",
+    //   });
+    // } catch (error) {
+    //   console.log(error);
+    //   alert("Sign in failed:" + error.message);
+    // } finally {
+    //   setLoading(false);
+    //   setEmail("");
+    //   setPassword("");
+    //   reset();
+    // }
   };
 
   return (
@@ -135,22 +150,26 @@ export const LoginScreen = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
-        <View style={styles.LoginBtnWrap}>
-          <TouchableOpacity
-            style={styles.registrationButton}
-            onPress={handleSubmit(onSubmit)}
-          >
-            <Text style={styles.registrationButtonText}>Увійти</Text>
-          </TouchableOpacity>
-          <View style={styles.registrationTextWrapper}>
-            <Text style={styles.registrationLinkText}>Немає акаунту?</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+          <View style={styles.LoginBtnWrap}>
             <TouchableOpacity
-              onPress={() => navigation.navigate("Registration")}
+              style={styles.registrationButton}
+              onPress={handleSubmit(signInUser)}
             >
-              <Text style={styles.registrationLink}>Зареєструватися</Text>
+              <Text style={styles.registrationButtonText}>Увійти</Text>
             </TouchableOpacity>
+            <View style={styles.registrationTextWrapper}>
+              <Text style={styles.registrationLinkText}>Немає акаунту?</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Registration")}
+              >
+                <Text style={styles.registrationLink}>Зареєструватися</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
       </ImageBackground>
     </TouchableWithoutFeedback>
   );

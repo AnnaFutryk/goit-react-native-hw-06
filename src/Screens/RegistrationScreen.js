@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { object, string } from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -13,9 +13,14 @@ import {
   TextInput,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { SvgAdd } from "../images/Svg";
+import { SvgAdd, SvgAdded, SvgCamera } from "../images/Svg";
+import { Camera } from "expo-camera";
+import * as MediaLibrary from "expo-media-library";
+import { useDispatch } from "react-redux";
+import { signUp } from "../redux/auth/authOperations";
 
 const validationSchema = object().shape({
   login: string().required("Логін є обов'язковим полем"),
@@ -29,6 +34,7 @@ const validationSchema = object().shape({
 
 export const RegistrationScreen = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
   const {
     control,
@@ -39,6 +45,12 @@ export const RegistrationScreen = () => {
     resolver: yupResolver(validationSchema),
   });
 
+  const [hasPermission, setHasPermission] = useState(null);
+  const [cameraRef, setCameraRef] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
+
+  const [type, setType] = useState(Camera.Constants.Type.back);
+
   const [isLoginFocused, setIsLoginFocused] = useState(false);
   const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
@@ -46,36 +58,48 @@ export const RegistrationScreen = () => {
   const [login, setLogin] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [visiblePassword, setVisiblePassword] = useState(false);
 
-  const addAvatar = (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      await MediaLibrary.requestPermissionsAsync();
+
+      setHasPermission(status === "granted");
+      if (hasPermission === null) {
+        return <View />;
+      }
+      if (hasPermission === false) {
+        return <Text>No access to camera</Text>;
+      }
+    })();
+  }, []);
+
+  const addAvatar = async () => {
+    if (cameraRef) {
+      const { uri } = await cameraRef.takePictureAsync();
+      setAvatar(uri);
+      setShowCamera(false);
+    }
   };
 
   const showPassword = () => {
     setVisiblePassword(!visiblePassword);
   };
 
-  const onSubmit = ({ email, login, password }) => {
-    console.log({
-      Login: login,
-      Email: email,
-      Password: password,
+  const signUpUser = () => {
+    dispatch(signUp({ login, email, password, avatar })).then((response) => {
+      response.type === "firebase/signUp/fulfilled" &&
+        navigation.navigate("Home", { screen: "PostsScreen" });
     });
-
     setLogin("");
     setEmail("");
     setPassword("");
+    setAvatar("");
     reset();
-
-    navigation.navigate("Home", {
-      screen: "PostsScreen",
-      // params: {
-      //   login: login,
-      //   email: email,
-      // },
-    });
   };
 
   return (
@@ -92,14 +116,52 @@ export const RegistrationScreen = () => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <View style={styles.avatar}>
-            <Image
-              source={require("../images/avatar.jpg")}
-              style={styles.avatarImage}
-            />
-            <TouchableOpacity style={styles.addButton} onPress={addAvatar}>
-              <SvgAdd />
-            </TouchableOpacity>
+            {showCamera ? (
+              <Camera style={styles.avatarImage} type={type} ref={setCameraRef}>
+                <TouchableOpacity
+                  style={styles.changeCameraType}
+                  onPress={() => {
+                    setType(
+                      type === Camera.Constants.Type.back
+                        ? Camera.Constants.Type.front
+                        : Camera.Constants.Type.back
+                    );
+                  }}
+                />
+                <TouchableOpacity
+                  style={styles.addPhotoBtn}
+                  onPress={addAvatar}
+                >
+                  <SvgCamera />
+                </TouchableOpacity>
+              </Camera>
+            ) : (
+              <>
+                {avatar ? (
+                  <>
+                    <Image
+                      style={styles.previewPhotoContainer}
+                      source={{ uri: avatar }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setAvatar("")}
+                      style={styles.addedButton}
+                    >
+                      <SvgAdded />
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => setShowCamera(true)}
+                  >
+                    <SvgAdd />
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
           </View>
+
           <Text style={styles.registrationTitle}>Реєстрація</Text>
           <View style={styles.formWrapper}>
             {errors.login && <Text>{errors.login.message}</Text>}
@@ -178,19 +240,23 @@ export const RegistrationScreen = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
-        <View style={styles.BtnWrap}>
-          <TouchableOpacity
-            style={styles.registrationButton}
-            onPress={handleSubmit(onSubmit)}
-          >
-            <Text style={styles.registrationButtonText}>Зареєструватися</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-            <Text style={styles.registrationLinkText}>
-              Вже є акаунт? Увійти
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+          <View style={styles.BtnWrap}>
+            <TouchableOpacity
+              style={styles.registrationButton}
+              onPress={handleSubmit(signUpUser)}
+            >
+              <Text style={styles.registrationButtonText}>Зареєструватися</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+              <Text style={styles.registrationLinkText}>
+                Вже є акаунт? Увійти
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ImageBackground>
     </TouchableWithoutFeedback>
   );
@@ -213,6 +279,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 25,
     padding: 32,
   },
+  changeCameraType: {
+    flex: 1,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   avatar: {
     position: "relative",
     backgroundColor: "#F6F6F6",
@@ -225,11 +297,36 @@ const styles = StyleSheet.create({
     marginRight: "auto",
   },
   avatarImage: {
+    flex: 1,
+    width: "100%",
     borderRadius: 16,
-    width: 120,
-    height: 120,
+  },
+  previewPhotoContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    borderRadius: 16,
+  },
+  addPhotoBtn: {
+    position: "absolute",
+    width: 44,
+    height: 44,
+    right: 35,
+    top: 35,
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 50,
   },
   addButton: {
+    position: "absolute",
+    width: 44,
+    height: 44,
+    right: -30,
+    bottom: 0,
+  },
+  addedButton: {
     position: "absolute",
     width: 44,
     height: 44,
