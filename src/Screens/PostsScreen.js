@@ -2,9 +2,11 @@ import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
 import { useSelector } from "react-redux";
 import { selectUser } from "../redux/auth/authSelectors";
 import { Post } from "../Components/Post";
+import { selectUserPosts } from "../redux/posts/postsSelectors";
 
 export const PostsScreen = () => {
   const { name, avatar, email } = useSelector(selectUser);
+  const posts = useSelector(selectUserPosts);
 
   return (
     <View style={styles.wrapper}>
@@ -22,24 +24,15 @@ export const PostsScreen = () => {
       </View>
       <View style={styles.allPostsWrapper}>
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Post
-            image={require("../images/forest.png")}
-            title={"Ліс"}
-            comentQuantity={0}
-            location={"Ivano-Frankivs'k Region, Ukraine"}
-          />
-          <Post
-            image={require("../images/sunset.png")}
-            title={"Захід на Чорному морі"}
-            comentQuantity={0}
-            location={"Ukraine"}
-          />
-          <Post
-            image={require("../images/house.png")}
-            title={"Старий будиночок у Венеції"}
-            comentQuantity={0}
-            location={"Italy"}
-          />
+          {posts.map((post) => (
+            <Post
+              key={post.id}
+              image={{ uri: post.photo }}
+              title={post.title}
+              comentQuantity={0} //додати логіку
+              location={post.location}
+            />
+          ))}
         </ScrollView>
       </View>
     </View>
@@ -63,7 +56,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     marginRight: 8,
-    backgroundColor: "#F6F6F6",
   },
   userAvatar: {
     borderRadius: 16,

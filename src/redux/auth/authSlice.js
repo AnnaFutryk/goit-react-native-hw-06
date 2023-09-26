@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { signUp, signIn, logOut } from "./authOperations";
 
 const initialState = {
+  uid: "",
   name: "",
   email: "",
   avatar: "",
@@ -20,7 +21,8 @@ const authSlise = createSlice({
         store.loading = true;
       })
       .addCase(signUp.fulfilled, (store, { payload }) => {
-        const { email, displayName, photoURL } = payload;
+        const { uid, email, displayName, photoURL } = payload;
+        store.uid = uid;
         store.name = displayName;
         store.email = email;
         store.avatar = photoURL;
@@ -38,7 +40,8 @@ const authSlise = createSlice({
         store.loading = true;
       })
       .addCase(signIn.fulfilled, (store, { payload }) => {
-        const { email, displayName, profilePicture } = payload;
+        const { email, displayName, profilePicture, localId } = payload;
+        store.uid = localId;
         store.name = displayName;
         store.email = email;
         store.avatar = profilePicture;
@@ -56,6 +59,7 @@ const authSlise = createSlice({
         store.loading = true;
       })
       .addCase(logOut.fulfilled, (store) => {
+        store.uid = "";
         store.name = "";
         store.email = "";
         store.error = null;

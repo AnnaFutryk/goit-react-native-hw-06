@@ -19,6 +19,9 @@ import {
 import { SvgCamera, SvgLocation, SvgTrash } from "../images/Svg";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigation } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
+import { addPost } from "../redux/posts/postsOperations";
+import { selectUserId } from "../redux/auth/authSelectors";
 
 const schema = yup.object().shape({
   title: yup.string().required("Введіть назву публікації"),
@@ -49,6 +52,10 @@ export const CreatePostsScreen = () => {
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [geolocation, setGeolocation] = useState("");
+
+  const dispatch = useDispatch();
+
+  const uid = useSelector(selectUserId);
 
   useEffect(() => {
     if (isValid && photo) {
@@ -104,24 +111,12 @@ export const CreatePostsScreen = () => {
     reset();
   };
 
-  const onSubmit = ({ title, location }) => {
-    const post = {
-      title,
-      location,
-      photo,
-      geolocation,
-    };
-    console.log({
-      Title: title,
-      Location: location,
-      Photo: photo,
-      Latitude: geolocation.latitude,
-      Longitude: geolocation.longitude,
-    });
-
+  const addUserPost = () => {
+    dispatch(addPost({ photo, title, location, geolocation, uid }));
     resetForm();
     navigation.navigate("PostsScreen");
   };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.screenContainer}>
@@ -232,7 +227,7 @@ export const CreatePostsScreen = () => {
               styles.submitBtn,
               !submitButtonActive && styles.submitBtnDisable,
             ]}
-            onPress={handleSubmit(onSubmit)}
+            onPress={handleSubmit(addUserPost)}
             disabled={!submitButtonActive}
           >
             <Text

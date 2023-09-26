@@ -4,7 +4,6 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
-  //   onAuthStateChanged,
 } from "firebase/auth";
 
 const auth = FIREBASE_AUTH;
