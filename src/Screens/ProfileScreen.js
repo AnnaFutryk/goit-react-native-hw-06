@@ -1,4 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
+import { useEffect } from "react";
 import {
   Image,
   ImageBackground,
@@ -8,15 +9,25 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ProfilePost } from "../Components/ProfilePost";
 import { SvgAdd, SvgAdded, SvgLogOut } from "../images/Svg";
 import { selectUser } from "../redux/auth/authSelectors";
+import { fetchUserPosts } from "../redux/posts/postsOperations";
+import { selectUserPosts } from "../redux/posts/postsSelectors";
 
 export const ProfileScreen = () => {
   const navigation = useNavigation();
 
-  const { name, avatar } = useSelector(selectUser);
+  const { name, avatar, uid } = useSelector(selectUser);
+
+  const dispatch = useDispatch();
+
+  const posts = useSelector(selectUserPosts);
+
+  useEffect(() => {
+    dispatch(fetchUserPosts(uid));
+  }, [uid]);
 
   return (
     <View style={styles.container}>
@@ -56,27 +67,16 @@ export const ProfileScreen = () => {
         <Text style={styles.userName}>{name}</Text>
         <View style={styles.allPostsWrapper}>
           <ScrollView contentContainerStyle={styles.scroll}>
-            <ProfilePost
-              image={require("../images/forest.png")}
-              title={"Ліс"}
-              comentQuantity={8}
-              location={"Ukraine"}
-              likes={153}
-            />
-            <ProfilePost
-              image={require("../images/sunset.png")}
-              title={"Захід на Чорному морі"}
-              comentQuantity={3}
-              location={"Ukraine"}
-              likes={200}
-            />
-            <ProfilePost
-              image={require("../images/house.png")}
-              title={"Старий будиночок у Венеції"}
-              comentQuantity={50}
-              location={"Italy"}
-              likes={200}
-            />
+            {posts.map((post) => (
+              <ProfilePost
+                key={post.id}
+                image={{ uri: post.photo }}
+                title={post.title}
+                comentQuantity={0} //додати логіку
+                location={post.location}
+                likes={153} //додати логіку
+              />
+            ))}
           </ScrollView>
         </View>
       </ImageBackground>

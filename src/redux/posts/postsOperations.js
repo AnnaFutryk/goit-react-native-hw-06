@@ -2,8 +2,8 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { FIRESTORE_DB } from "../../firebase/config";
 
-export const addPost = createAsyncThunk(
-  "posts/addPost",
+export const fetchAddedPost = createAsyncThunk(
+  "posts/fetchAddedPost",
   async (data, thunkAPI) => {
     try {
       const docRef = await addDoc(collection(FIRESTORE_DB, "posts"), {
@@ -13,7 +13,7 @@ export const addPost = createAsyncThunk(
       const Docs = await getDocs(collection(FIRESTORE_DB, "posts"));
       const response = [];
       Docs.forEach((doc) => {
-        response.push({
+        response.unshift({
           id: doc.id,
           ...doc.data(),
         });
@@ -25,19 +25,25 @@ export const addPost = createAsyncThunk(
   }
 );
 
-export const postList = createAsyncThunk(
-  "posts/postList",
-  async (_, thunkAPI) => {
+export const fetchUserPosts = createAsyncThunk(
+  "posts/fetchUserPosts",
+  async (uid, thunkAPI) => {
     try {
-      const Docs = await getDocs(collection(FIRESTORE_DB, "posts"));
-      const response = [];
-      Docs.forEach((doc) => {
-        response.push({
+      const q = query(
+        collection(FIRESTORE_DB, "posts"),
+        where("uid", "==", uid)
+      );
+      const querySnapshot = await getDocs(q);
+
+      const userPosts = [];
+      querySnapshot.forEach((doc) => {
+        userPosts.unshift({
           id: doc.id,
           ...doc.data(),
         });
       });
-      return response;
+
+      return userPosts;
     } catch (error) {
       console.log(error);
     }

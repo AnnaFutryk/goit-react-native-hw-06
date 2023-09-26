@@ -20,7 +20,7 @@ import { SvgCamera, SvgLocation, SvgTrash } from "../images/Svg";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
-import { addPost } from "../redux/posts/postsOperations";
+import { fetchAddedPost } from "../redux/posts/postsOperations";
 import { selectUserId } from "../redux/auth/authSelectors";
 
 const schema = yup.object().shape({
@@ -112,7 +112,7 @@ export const CreatePostsScreen = () => {
   };
 
   const addUserPost = () => {
-    dispatch(addPost({ photo, title, location, geolocation, uid }));
+    dispatch(fetchAddedPost({ photo, title, location, geolocation, uid }));
     resetForm();
     navigation.navigate("PostsScreen");
   };

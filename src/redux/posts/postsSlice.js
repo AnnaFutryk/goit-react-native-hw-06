@@ -1,7 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { addPost, postList } from "./postsOperations";
+import { fetchAddedPost, fetchUserPosts } from "./postsOperations";
 
 const initialState = {
+  uid: "",
   posts: [],
   error: null,
   loading: false,
@@ -12,29 +13,29 @@ const postsSlise = createSlice({
   initialState,
   extraReducers: (builder) => {
     builder
-      .addCase(addPost.pending, (store) => {
+      .addCase(fetchAddedPost.pending, (store) => {
         store.error = null;
         store.loading = true;
       })
-      .addCase(addPost.fulfilled, (store, { payload }) => {
+      .addCase(fetchAddedPost.fulfilled, (store, { payload }) => {
         store.posts = payload;
         store.error = null;
         store.loading = false;
       })
-      .addCase(addPost.rejected, (store, { payload }) => {
+      .addCase(fetchAddedPost.rejected, (store, { payload }) => {
         store.error = payload;
         store.loading = false;
       })
-      .addCase(postList.pending, (store) => {
+      .addCase(fetchUserPosts.pending, (store) => {
         store.error = null;
         store.loading = true;
       })
-      .addCase(postList.fulfilled, (store, { payload }) => {
+      .addCase(fetchUserPosts.fulfilled, (store, { payload }) => {
         store.posts = payload;
         store.error = null;
         store.loading = false;
       })
-      .addCase(postList.rejected, (store, { payload }) => {
+      .addCase(fetchUserPosts.rejected, (store, { payload }) => {
         store.error = payload;
         store.loading = false;
       });

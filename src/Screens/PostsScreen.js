@@ -1,12 +1,21 @@
 import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../redux/auth/authSelectors";
 import { Post } from "../Components/Post";
 import { selectUserPosts } from "../redux/posts/postsSelectors";
+import { useEffect } from "react";
+import { fetchUserPosts } from "../redux/posts/postsOperations";
 
 export const PostsScreen = () => {
-  const { name, avatar, email } = useSelector(selectUser);
+  const { name, avatar, email, uid } = useSelector(selectUser);
+
+  const dispatch = useDispatch();
+
   const posts = useSelector(selectUserPosts);
+
+  useEffect(() => {
+    dispatch(fetchUserPosts(uid));
+  }, [uid]);
 
   return (
     <View style={styles.wrapper}>
