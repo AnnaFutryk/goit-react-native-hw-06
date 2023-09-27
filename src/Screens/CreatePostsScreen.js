@@ -99,6 +99,7 @@ export const CreatePostsScreen = () => {
   const addPhoto = async () => {
     if (cameraRef) {
       const { uri } = await cameraRef.takePictureAsync();
+      dispatch(setPhoto(uri));
       setPhoto(uri);
     }
   };

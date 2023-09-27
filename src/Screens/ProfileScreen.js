@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -24,6 +24,11 @@ export const ProfileScreen = () => {
   const dispatch = useDispatch();
 
   const posts = useSelector(selectUserPosts);
+  const selectedPostImage = useSelector(
+    (state) => state.posts.selectedPostImage
+  );
+
+  const [postId, setPostId] = useState("");
 
   useEffect(() => {
     dispatch(fetchUserPosts(uid));
@@ -75,6 +80,9 @@ export const ProfileScreen = () => {
                 comentQuantity={0} //додати логіку
                 location={post.location}
                 likes={153} //додати логіку
+                selectedPostImage={selectedPostImage}
+                postId={post.id}
+                setPostId={setPostId}
               />
             ))}
           </ScrollView>

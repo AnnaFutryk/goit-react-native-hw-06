@@ -11,14 +11,15 @@ export const fetchAddedPost = createAsyncThunk(
       });
 
       const Docs = await getDocs(collection(FIRESTORE_DB, "posts"));
-      const response = [];
+      const posts = [];
+
       Docs.forEach((doc) => {
-        response.unshift({
+        posts.unshift({
           id: doc.id,
           ...doc.data(),
         });
       });
-      return response;
+      return posts;
     } catch (error) {
       console.log(error);
     }

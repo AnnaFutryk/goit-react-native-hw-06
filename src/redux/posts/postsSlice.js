@@ -4,6 +4,8 @@ import { fetchAddedPost, fetchUserPosts } from "./postsOperations";
 const initialState = {
   uid: "",
   posts: [],
+  selectedPostId: "",
+  selectedPostImage: "",
   error: null,
   loading: false,
 };
@@ -11,6 +13,13 @@ const initialState = {
 const postsSlise = createSlice({
   name: "posts",
   initialState,
+  reducers: {
+    selectPost: (store, action) => {
+      const { postId, postImage } = action.payload;
+      store.selectedPostId = postId;
+      store.selectedPostImage = postImage;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAddedPost.pending, (store) => {
@@ -41,5 +50,7 @@ const postsSlise = createSlice({
       });
   },
 });
+
+export const { selectPost } = postsSlise.actions;
 
 export default postsSlise.reducer;

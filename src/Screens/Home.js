@@ -6,7 +6,6 @@ import { CreatePostsScreen } from "./CreatePostsScreen";
 import { PostsScreen } from "./PostsScreen";
 import { ProfileScreen } from "./ProfileScreen";
 import { SvgBack, SvgLogOut } from "../images/Svg";
-import { useRoute } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
 import { logOut } from "../redux/auth/authOperations";
 

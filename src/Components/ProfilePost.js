@@ -1,6 +1,8 @@
 import { useNavigation } from "@react-navigation/native";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { useDispatch } from "react-redux";
 import { SvgLocation, SvgLike, SvgCommentColor } from "../images/Svg";
+import { selectPost } from "../redux/posts/postsSlice";
 
 export const ProfilePost = ({
   image,
@@ -8,8 +10,17 @@ export const ProfilePost = ({
   comentQuantity,
   location,
   likes,
+  postId,
 }) => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+
+  const handlePostSelection = () => {
+    dispatch(selectPost({ postId: postId, postImage: image.uri }));
+
+    navigation.navigate("Comments", { postImage: image.uri, postId: postId });
+  };
+
   return (
     <View style={styles.postWrapper}>
       <Image style={styles.postImage} source={image} />
@@ -17,7 +28,7 @@ export const ProfilePost = ({
       <View style={styles.postDetails}>
         <TouchableOpacity
           style={styles.commentBlock}
-          onPress={() => navigation.navigate("Comments")}
+          onPress={handlePostSelection}
         >
           <SvgCommentColor style={styles.postSvg} />
           <Text style={styles.postsQuantity}>{comentQuantity}</Text>

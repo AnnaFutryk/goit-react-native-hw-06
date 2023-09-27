@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -16,6 +16,14 @@ import {
 } from "react-native";
 import { Comment } from "../Components/Comment";
 import { SvgPostSubmit } from "../images/Svg";
+import { useDispatch, useSelector } from "react-redux";
+import { selectUser } from "../redux/auth/authSelectors";
+import { selectUserComments } from "../redux/comments/commentsSelectors";
+import {
+  fetchAddedComment,
+  fetchUserComments,
+} from "../redux/comments/commentsOperations";
+import { useRoute } from "@react-navigation/native";
 
 const schema = yup.object().shape({
   comment: yup.string().required("Введіть коментар"),
@@ -31,15 +39,38 @@ export const CommentsScreen = () => {
     resolver: yupResolver(schema),
   });
 
+  const { avatar, uid } = useSelector(selectUser);
+
+  const route = useRoute();
+  const { postImage, postId } = route.params;
+
+  // const { selectedPostImage, selectedPostId } = useSelector(
+  //   (store) => store.posts
+  // );
+
+  const comments = useSelector(
+    (store) => selectUserComments(store, postId) // Передаємо postId для фільтрації коментарів
+  );
+
+  // const postImage = useSelector((store) => store.posts.posts[0]?.photo);
+  // console.log(postImage);//не пішло
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(fetchUserComments({ postId, uid }));
+  }, [uid, postId]);
+
   const [isFocusedInput, setIsFocusedInput] = useState(false);
   const [comment, setComment] = useState("");
 
-  const SubmitComent = ({ comment }) => {
-    setComment(comment);
-    console.log(comment);
+  const SubmitComment = () => {
+    dispatch(fetchAddedComment({ comment, uid, postId }));
     setComment("");
     reset();
   };
+
+  console.log("Comments:", comments);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -49,28 +80,17 @@ export const CommentsScreen = () => {
         keyboardVerticalOffset={80}
       >
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Image style={styles.img} source={require("../images/sunset.png")} />
+          <Image style={styles.img} source={{ uri: postImage }} />
+
           <View style={styles.commentWrapper}>
-            <Comment
-              avatar={require("../images/comment-ava.png")}
-              text={
-                "Really love your most recent photo. I've been trying to capture the same thing for a few months and would love some tips!"
-              }
-              date={"09 червня, 2020 | 08:40"}
-            />
-            <Comment
-              style={{ flexDirection: "row-reverse", textAlign: "left" }}
-              avatar={require("../images/avatar.jpg")}
-              text={
-                "A fast 50mm like f1.8 would help with the bokeh. I’ve been using primes as they tend to get a bit sharper images."
-              }
-              date={"09 червня, 2020 | 09:14"}
-            />
-            <Comment
-              avatar={require("../images/comment-ava.png")}
-              text={"Thank you! That was very helpful!"}
-              date={"09 червня, 2020 | 09:20"}
-            />
+            {comments.map((commentData) => (
+              <Comment
+                key={commentData.id}
+                avatar={{ uri: avatar }}
+                text={commentData.comment}
+                date={commentData.date}
+              />
+            ))}
           </View>
         </ScrollView>
         <View style={styles.formContainer}>
@@ -95,7 +115,7 @@ export const CommentsScreen = () => {
                 />
                 <TouchableOpacity
                   style={styles.postBtn}
-                  onPress={handleSubmit(SubmitComent)}
+                  onPress={handleSubmit(SubmitComment)}
                 >
                   <SvgPostSubmit />
                 </TouchableOpacity>

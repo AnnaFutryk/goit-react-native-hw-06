@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../redux/auth/authSelectors";
 import { Post } from "../Components/Post";
 import { selectUserPosts } from "../redux/posts/postsSelectors";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { fetchUserPosts } from "../redux/posts/postsOperations";
 
 export const PostsScreen = () => {
@@ -12,6 +12,11 @@ export const PostsScreen = () => {
   const dispatch = useDispatch();
 
   const posts = useSelector(selectUserPosts);
+  const selectedPostImage = useSelector(
+    (state) => state.posts.selectedPostImage
+  );
+
+  const [postId, setPostId] = useState("");
 
   useEffect(() => {
     dispatch(fetchUserPosts(uid));
@@ -38,8 +43,11 @@ export const PostsScreen = () => {
               key={post.id}
               image={{ uri: post.photo }}
               title={post.title}
-              comentQuantity={0} //додати логіку
+              comentQuantity={0}
               location={post.location}
+              selectedPostImage={selectedPostImage}
+              postId={post.id}
+              setPostId={setPostId}
             />
           ))}
         </ScrollView>
