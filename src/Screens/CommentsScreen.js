@@ -70,7 +70,7 @@ export const CommentsScreen = () => {
     reset();
   };
 
-  console.log("Comments:", comments);
+  // console.log("Comments:", comments);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

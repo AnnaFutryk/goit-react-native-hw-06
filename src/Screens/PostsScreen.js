@@ -5,18 +5,27 @@ import { Post } from "../Components/Post";
 import { selectUserPosts } from "../redux/posts/postsSelectors";
 import { useEffect, useState } from "react";
 import { fetchUserPosts } from "../redux/posts/postsOperations";
+import { fetchUserComments } from "../redux/comments/commentsOperations";
 
 export const PostsScreen = () => {
   const { name, avatar, email, uid } = useSelector(selectUser);
 
+  const [postId, setPostId] = useState("");
+
   const dispatch = useDispatch();
+
+  const comments = useSelector((store) => store.comments.comments);
+  console.log("коменти з постскрін: ", comments);
 
   const posts = useSelector(selectUserPosts);
   const selectedPostImage = useSelector(
     (state) => state.posts.selectedPostImage
   );
 
-  const [postId, setPostId] = useState("");
+  useEffect(() => {
+    dispatch(fetchUserComments({ postId, uid }));
+    setPostId(postId);
+  }, [uid, postId]);
 
   useEffect(() => {
     dispatch(fetchUserPosts(uid));
@@ -43,7 +52,9 @@ export const PostsScreen = () => {
               key={post.id}
               image={{ uri: post.photo }}
               title={post.title}
-              comentQuantity={0}
+              commentQuantity={
+                comments.filter((comment) => comment.postId === post.id).length
+              }
               location={post.location}
               selectedPostImage={selectedPostImage}
               postId={post.id}
