@@ -22,7 +22,9 @@ import {
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { FIRESTORE_DB, FIRESTORE_STORAGE } from "../firebase/config";
 import { updateUserAvatar } from "../redux/auth/authOperations";
+
 import { Ionicons } from "@expo/vector-icons";
+import { updateNewAvatarUrl } from "../redux/auth/authSlice";
 
 export const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -76,7 +78,7 @@ export const ProfileScreen = () => {
 
   const addPhotoToFireBase = async () => {
     const postId = Date.now().toString();
-    console.log("(updatedAvatar)", updatedAvatar);
+    console.log("updatedAvatar", updatedAvatar);
     try {
       const response = await fetch(updatedAvatar);
       const file = await response.blob();
@@ -84,7 +86,7 @@ export const ProfileScreen = () => {
       await uploadBytes(imageRef, file);
 
       const processedPhoto = await getDownloadURL(imageRef);
-      console.log("URL фото:", processedPhoto);
+      console.log("URL фото from profileScr:", processedPhoto);
       setChangeAvatar(false);
       return processedPhoto;
     } catch (error) {
@@ -95,14 +97,20 @@ export const ProfileScreen = () => {
 
   const addAvatarToFireBase = async () => {
     const uploadedAvatar = await addPhotoToFireBase();
-    setUpdatedAvatar(uploadedAvatar);
-
-    dispatch(updateUserAvatar(uploadedAvatar)).then((data) => {
-      if (data === undefined || !data.uid) {
-        return;
-      }
+    if (uploadedAvatar) {
+      // Оновити аватар в Firebase
+      dispatch(updateUserAvatar({ userId, newAvatarUrl: uploadedAvatar })).then(
+        (data) => {
+          if (data.meta.requestStatus === "fulfilled") {
+            // Оновити newAvatarUrl в Redux
+            dispatch(updateNewAvatarUrl(uploadedAvatar));
+          } else {
+            console.error("Failed to update user avatar:", data.error);
+          }
+        }
+      );
       setChangeAvatar(false);
-    });
+    }
   };
 
   return (

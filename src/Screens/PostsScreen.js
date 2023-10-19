@@ -27,6 +27,8 @@ export const PostsScreen = () => {
   const avatar = useSelector(selectUserAvatar);
   const updatedAvatar = useSelector(selectUpdatedAvatar);
   // const [updatedAvatar, setUpdatedAvatar] = useState(null);
+  const newAvatarUrl = useSelector((store) => store.auth.newAvatarUrl);
+
   const userId = useSelector(selectUserId);
 
   const [postsCollection, setPostsCollection] = useState([]);
@@ -49,41 +51,16 @@ export const PostsScreen = () => {
     });
   };
 
-  // useEffect(() => {
-  //   // Формуємо шлях до оновленої аватарки в Firebase Storage
-  //   const storageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
-
-  //   // Отримуємо URL оновленої аватарки
-  //   getDownloadURL(storageRef)
-  //     .then((downloadURL) => {
-  //       setUpdatedAvatar(downloadURL);
-
-  //       // Якщо потрібно, оновити стейт в Redux
-  //       dispatch(selectUpdatedAvatar(downloadURL));
-  //     })
-  //     .catch((error) => {
-  //       console.error("Помилка при отриманні URL оновленої аватарки", error);
-  //     });
-  // }, [userId, dispatch]);
-
-  // const getUpdatedAvatarUrl = async () => {
-  //   const storageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
-  //   try {
-  //     const downloadURL = await getDownloadURL(storageRef);
-  //     return downloadURL;
-  //   } catch (error) {
-  //     console.error("Помилка при отриманні URL оновленої аватарки", error);
-  //     return null;
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   getUpdatedAvatarUrl().then((newAvatarUrl) => {
-  //     if (newAvatarUrl) {
-  //       dispatch(selectUpdatedAvatar(newAvatarUrl));
-  //     }
-  //   });
-  // }, []);
+  const getUpdatedAvatarUrl = async () => {
+    const storageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
+    try {
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error("Помилка при отриманні URL оновленої аватарки", error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     fetchPosts();
@@ -102,7 +79,7 @@ export const PostsScreen = () => {
           {avatar ? (
             <Image style={styles.userAvatar} source={{ uri: avatar }} />
           ) : (
-            <Image style={styles.userAvatar} source={{ uri: updatedAvatar }} />
+            <Image style={styles.userAvatar} source={{ uri: newAvatarUrl }} />
           )}
         </View>
         <View>

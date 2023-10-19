@@ -63,23 +63,6 @@ export const LoginScreen = () => {
     setEmail("");
     setPassword("");
     reset();
-
-    //setLoading(true)
-    // try {
-    //   const response = await signInWithEmailAndPassword(auth, email, password);
-    //   console.log(response);
-    //   navigation.navigate("Home", {
-    //     screen: "PostsScreen",
-    //   });
-    // } catch (error) {
-    //   console.log(error);
-    //   alert("Sign in failed:" + error.message);
-    // } finally {
-    //   setLoading(false);
-    //   setEmail("");
-    //   setPassword("");
-    //   reset();
-    // }
   };
 
   return (

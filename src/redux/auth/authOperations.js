@@ -69,7 +69,7 @@ export const updateUserAvatar = createAsyncThunk(
       const avatarUrl = await getDownloadURL(imageRef);
 
       await updateProfile(auth.currentUser, { photoURL: avatarUrl });
-      console.log("updated");
+      console.log("updated from operations");
 
       return avatarUrl;
     } catch (error) {

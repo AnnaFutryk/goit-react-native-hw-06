@@ -6,15 +6,21 @@ const initialState = {
   name: "",
   email: "",
   avatar: "",
-  updatedAvatar: "",
+  newAvatarUrl: "",
   isAuth: false,
   error: null,
   loading: false,
 };
 
-const authSlise = createSlice({
+const authSlice = createSlice({
   name: "auth",
   initialState,
+  reducers: {
+    // Додайте нову дію для оновлення newAvatarUrl
+    updateNewAvatarUrl: (store, action) => {
+      store.avatar = action.payload;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(signUp.pending, (store) => {
@@ -27,6 +33,7 @@ const authSlise = createSlice({
         store.name = displayName;
         store.email = email;
         store.avatar = photoURL;
+        store.newAvatarUrl = photoURL;
         store.error = null;
         store.loading = false;
         store.isAuth = true;
@@ -46,6 +53,7 @@ const authSlise = createSlice({
         store.name = displayName;
         store.email = email;
         store.avatar = profilePicture;
+        store.newAvatarUrl = profilePicture;
         store.error = null;
         store.loading = false;
         store.isAuth = true;
@@ -73,8 +81,9 @@ const authSlise = createSlice({
         store.isAuth = true;
       })
       .addCase(updateUserAvatar.fulfilled, (store, { payload }) => {
-        store.updatedAvatar = payload;
-        console.log("Updated avatar URL:", payload);
+        store.avatar = payload;
+        store.newAvatarUrl = payload;
+        console.log("Updated avatar URL from slice:", payload);
       })
       .addCase(updateUserAvatar.rejected, (store, { payload }) => {
         store.error = payload;
@@ -82,5 +91,6 @@ const authSlise = createSlice({
       });
   },
 });
+export const { updateNewAvatarUrl } = authSlice.actions;
 
-export default authSlise.reducer;
+export default authSlice.reducer;
