@@ -1,68 +1,135 @@
-import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import { selectUser } from "../redux/auth/authSelectors";
-import { Post } from "../Components/Post";
-import { selectUserPosts } from "../redux/posts/postsSelectors";
+import { collection, onSnapshot } from "firebase/firestore";
+import { getDownloadURL, ref } from "firebase/storage";
 import { useEffect, useState } from "react";
-import { fetchUserPosts } from "../redux/posts/postsOperations";
-import { fetchUserComments } from "../redux/comments/commentsOperations";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  RefreshControl,
+  FlatList,
+} from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { Post } from "../Components/Post";
+import { FIRESTORE_DB, FIRESTORE_STORAGE } from "../firebase/config";
+import {
+  selectUpdatedAvatar,
+  selectUser,
+  selectUserAvatar,
+  selectUserId,
+  selectUserName,
+} from "../redux/auth/authSelectors";
 
 export const PostsScreen = () => {
-  const { name, avatar, email, uid } = useSelector(selectUser);
-
-  const [postId, setPostId] = useState("");
-
   const dispatch = useDispatch();
+  const name = useSelector(selectUserName);
+  const { email } = useSelector(selectUser);
+  const avatar = useSelector(selectUserAvatar);
+  const updatedAvatar = useSelector(selectUpdatedAvatar);
+  // const [updatedAvatar, setUpdatedAvatar] = useState(null);
+  const userId = useSelector(selectUserId);
 
-  const comments = useSelector((store) => store.comments.comments);
-  console.log("коменти з постскрін: ", comments);
+  const [postsCollection, setPostsCollection] = useState([]);
 
-  const posts = useSelector(selectUserPosts);
-  const selectedPostImage = useSelector(
-    (state) => state.posts.selectedPostImage
-  );
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchPosts = () => {
+    const postsRef = collection(FIRESTORE_DB, "posts");
+
+    onSnapshot(postsRef, (querySnapshot) => {
+      const postsData = querySnapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        .filter((post) => post.owner.userId === userId);
+
+      const sortedPosts = postsData.sort((a, b) => b.createdAt - a.createdAt);
+      setPostsCollection(sortedPosts);
+    });
+  };
+
+  // useEffect(() => {
+  //   // Формуємо шлях до оновленої аватарки в Firebase Storage
+  //   const storageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
+
+  //   // Отримуємо URL оновленої аватарки
+  //   getDownloadURL(storageRef)
+  //     .then((downloadURL) => {
+  //       setUpdatedAvatar(downloadURL);
+
+  //       // Якщо потрібно, оновити стейт в Redux
+  //       dispatch(selectUpdatedAvatar(downloadURL));
+  //     })
+  //     .catch((error) => {
+  //       console.error("Помилка при отриманні URL оновленої аватарки", error);
+  //     });
+  // }, [userId, dispatch]);
+
+  // const getUpdatedAvatarUrl = async () => {
+  //   const storageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
+  //   try {
+  //     const downloadURL = await getDownloadURL(storageRef);
+  //     return downloadURL;
+  //   } catch (error) {
+  //     console.error("Помилка при отриманні URL оновленої аватарки", error);
+  //     return null;
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   getUpdatedAvatarUrl().then((newAvatarUrl) => {
+  //     if (newAvatarUrl) {
+  //       dispatch(selectUpdatedAvatar(newAvatarUrl));
+  //     }
+  //   });
+  // }, []);
 
   useEffect(() => {
-    dispatch(fetchUserComments({ postId, uid }));
-    setPostId(postId);
-  }, [uid, postId]);
+    fetchPosts();
+  }, []);
 
-  useEffect(() => {
-    dispatch(fetchUserPosts(uid));
-  }, [uid]);
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPosts();
+    setRefreshing(false);
+  };
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.userInfo}>
         <View style={styles.avaWrapper}>
-          {avatar && (
-            <Image style={styles.userAvatar} source={{ uri: `${avatar}` }} />
+          {avatar ? (
+            <Image style={styles.userAvatar} source={{ uri: avatar }} />
+          ) : (
+            <Image style={styles.userAvatar} source={{ uri: updatedAvatar }} />
           )}
         </View>
-
         <View>
           <Text style={styles.userName}>{name}</Text>
           <Text style={styles.userEmail}>{email}</Text>
         </View>
       </View>
-      <View style={styles.allPostsWrapper}>
-        <ScrollView contentContainerStyle={styles.scroll}>
-          {posts.map((post) => (
+      {postsCollection.length !== 0 && (
+        <FlatList
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          data={postsCollection}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
             <Post
-              key={post.id}
-              image={{ uri: post.photo }}
-              title={post.title}
-              commentQuantity={
-                comments.filter((comment) => comment.postId === post.id).length
-              }
-              location={post.location}
-              selectedPostImage={selectedPostImage}
-              postId={post.id}
-              setPostId={setPostId}
+              key={item.id}
+              id={item.id}
+              title={item.title}
+              photoLocation={item.photoLocation}
+              url={item.photo}
+              geolocation={item.geolocation}
             />
-          ))}
-        </ScrollView>
-      </View>
+          )}
+          style={styles.allPostsWrapper}
+        />
+      )}
     </View>
   );
 };
@@ -104,8 +171,6 @@ const styles = StyleSheet.create({
   allPostsWrapper: {
     flex: 1,
     position: "relative",
-  },
-  scroll: {
     paddingLeft: 16,
     paddingRight: 16,
   },

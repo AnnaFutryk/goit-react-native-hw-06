@@ -1,38 +1,55 @@
 import { useNavigation } from "@react-navigation/native";
-import { useState } from "react";
+import { collection, onSnapshot } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
-import { useDispatch } from "react-redux";
-import { SvgComent, SvgLocation } from "../images/Svg";
-import { selectPost } from "../redux/posts/postsSlice";
+import { FIRESTORE_DB } from "../firebase/config";
+import { SvgComent, SvgCommentColor, SvgLocation } from "../images/Svg";
 
-export const Post = ({ image, title, commentQuantity, location, postId }) => {
+export const Post = ({ id, title, url, photoLocation, geolocation }) => {
   const navigation = useNavigation();
-  const dispatch = useDispatch();
 
-  const handlePostSelection = () => {
-    dispatch(selectPost({ postId: postId, postImage: image.uri }));
+  const [comments, setComments] = useState([]);
 
-    navigation.navigate("Comments", { postImage: image.uri, postId: postId });
-  };
+  useEffect(() => {
+    const commentsCollection = collection(
+      FIRESTORE_DB,
+      "posts",
+      id,
+      "comments"
+    );
+    onSnapshot(commentsCollection, (querySnapshot) => {
+      const commentsData = querySnapshot.docs.map((doc) => ({
+        commentId: doc.id,
+        ...doc.data(),
+      }));
+      setComments(commentsData);
+    });
+  }, []);
 
   return (
     <View style={styles.postWrapper}>
-      <Image style={styles.postImage} source={image} />
+      <Image style={styles.postImage} source={{ uri: url }} />
       <Text style={styles.postTitle}>{title}</Text>
       <View style={styles.postDetails}>
         <TouchableOpacity
           style={styles.commentBlock}
-          onPress={handlePostSelection}
+          onPress={() => navigation.navigate("Comments", { url, id })}
         >
-          <SvgComent style={styles.postSvg} />
-          <Text style={styles.postsQuantity}>{commentQuantity}</Text>
+          {comments.length === 0 ? (
+            <SvgComent style={styles.postSvg} />
+          ) : (
+            <SvgCommentColor style={styles.postSvg} />
+          )}
+          <Text style={styles.postsQuantity}>{comments.length}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.locationBlock}
-          onPress={() => navigation.navigate("Map")}
+          onPress={() =>
+            navigation.navigate("Map", { geolocation, photoLocation })
+          }
         >
           <SvgLocation style={styles.postSvg} />
-          <Text style={styles.locationTxt}>{location}</Text>
+          <Text style={styles.locationTxt}>{photoLocation}</Text>
         </TouchableOpacity>
       </View>
     </View>

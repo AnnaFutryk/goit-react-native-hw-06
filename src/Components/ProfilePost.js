@@ -1,48 +1,100 @@
 import { useNavigation } from "@react-navigation/native";
+import { collection, onSnapshot } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
-import { useDispatch } from "react-redux";
-import { SvgLocation, SvgLike, SvgCommentColor } from "../images/Svg";
-import { selectPost } from "../redux/posts/postsSlice";
+import { useSelector } from "react-redux";
+import { FIRESTORE_DB } from "../firebase/config";
+import { deleteLike, sendLike } from "../firebase/utils";
+import {
+  SvgLocation,
+  SvgLike,
+  SvgCommentColor,
+  SvgComent,
+} from "../images/Svg";
+import {
+  selectUserAvatar,
+  selectUserId,
+  selectUserName,
+} from "../redux/auth/authSelectors";
 
-export const ProfilePost = ({
-  image,
-  title,
-  comentQuantity,
-  location,
-  likes,
-  postId,
-}) => {
+export const ProfilePost = ({ id, url, title, photoLocation, geolocation }) => {
   const navigation = useNavigation();
-  const dispatch = useDispatch();
 
-  const handlePostSelection = () => {
-    dispatch(selectPost({ postId: postId, postImage: image.uri }));
+  const name = useSelector(selectUserName);
+  const avatar = useSelector(selectUserAvatar);
+  const userId = useSelector(selectUserId);
 
-    navigation.navigate("Comments", { postImage: image.uri, postId: postId });
+  const [comments, setComments] = useState([]);
+  const [likes, setLikes] = useState([]);
+  const [isLiked, setIsLiked] = useState(false);
+
+  useEffect(() => {
+    const commentsCollection = collection(
+      FIRESTORE_DB,
+      "posts",
+      id,
+      "comments"
+    );
+    onSnapshot(commentsCollection, (querySnapshot) => {
+      const commentsData = querySnapshot.docs.map((doc) => ({
+        commentId: doc.id,
+        ...doc.data(),
+      }));
+      setComments(commentsData);
+    });
+  }, []);
+
+  useEffect(() => {
+    const likesCollection = collection(FIRESTORE_DB, "posts", id, "likes");
+    onSnapshot(likesCollection, (querySnapshot) => {
+      const likesData = querySnapshot.docs.map((doc) => ({
+        likeId: doc.id,
+        ...doc.data(),
+      }));
+      const didIsLiked = likesData.some(
+        (likesData) => likesData.likeId === userId
+      );
+      setIsLiked(didIsLiked);
+      setLikes(likesData);
+    });
+  }, []);
+
+  const handleLikes = async () => {
+    if (!isLiked) {
+      await sendLike(id, userId, name, avatar);
+      return;
+    }
+    await deleteLike(id, userId);
   };
 
   return (
     <View style={styles.postWrapper}>
-      <Image style={styles.postImage} source={image} />
+      <Image style={styles.postImage} source={{ uri: url }} />
       <Text style={styles.postTitle}>{title}</Text>
       <View style={styles.postDetails}>
         <TouchableOpacity
           style={styles.commentBlock}
-          onPress={handlePostSelection}
+          onPress={() => navigation.navigate("Comments", { url, id })}
         >
-          <SvgCommentColor style={styles.postSvg} />
-          <Text style={styles.postsQuantity}>{comentQuantity}</Text>
+          {comments.length === 0 ? (
+            <SvgComent style={styles.postSvg} />
+          ) : (
+            <SvgCommentColor style={styles.postSvg} />
+          )}
+          <Text style={styles.postsQuantity}>{comments.length}</Text>
         </TouchableOpacity>
-        <View style={styles.likesBlock}>
+        <TouchableOpacity style={styles.likesBlock} onPress={handleLikes}>
           <SvgLike style={styles.svgLike} />
-          <Text style={styles.postsLikes}>{likes}</Text>
-        </View>
+          <Text style={styles.postsLikes}>{likes.length}</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.locationBlock}
-          onPress={() => navigation.navigate("Map")}
+          onPress={() =>
+            navigation.navigate("Map", { geolocation, photoLocation })
+          }
         >
           <SvgLocation style={styles.postSvg} />
-          <Text style={styles.locationTxt}>{location}</Text>
+          <Text style={styles.locationTxt}>{photoLocation}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -97,5 +149,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  svgLike: { marginRight: 6 },
+  svgLike: {
+    marginRight: 6,
+  },
 });

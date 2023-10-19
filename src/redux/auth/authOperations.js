@@ -1,10 +1,11 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { FIREBASE_AUTH } from "../../firebase/config";
+import { FIREBASE_AUTH, FIRESTORE_STORAGE } from "../../firebase/config";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 const auth = FIREBASE_AUTH;
 
@@ -52,6 +53,29 @@ export const logOut = createAsyncThunk(
       return response;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
+
+export const updateUserAvatar = createAsyncThunk(
+  "firebase/updateUserAvatar",
+  async (data, thunkAPI) => {
+    try {
+      const { userId, newAvatarUrl } = data;
+
+      const imageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
+      await uploadBytes(imageRef, newAvatarUrl);
+
+      const avatarUrl = await getDownloadURL(imageRef);
+
+      await updateProfile(auth.currentUser, { photoURL: avatarUrl });
+      console.log("updated");
+
+      return avatarUrl;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        alert("Update user avatar failed: ", error.message)
+      );
     }
   }
 );

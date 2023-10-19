@@ -1,11 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { signUp, signIn, logOut } from "./authOperations";
+import { signUp, signIn, logOut, updateUserAvatar } from "./authOperations";
 
 const initialState = {
-  uid: "",
+  userId: "",
   name: "",
   email: "",
   avatar: "",
+  updatedAvatar: "",
   isAuth: false,
   error: null,
   loading: false,
@@ -22,7 +23,7 @@ const authSlise = createSlice({
       })
       .addCase(signUp.fulfilled, (store, { payload }) => {
         const { uid, email, displayName, photoURL } = payload;
-        store.uid = uid;
+        store.userId = uid;
         store.name = displayName;
         store.email = email;
         store.avatar = photoURL;
@@ -41,7 +42,7 @@ const authSlise = createSlice({
       })
       .addCase(signIn.fulfilled, (store, { payload }) => {
         const { email, displayName, profilePicture, localId } = payload;
-        store.uid = localId;
+        store.userId = localId;
         store.name = displayName;
         store.email = email;
         store.avatar = profilePicture;
@@ -59,7 +60,7 @@ const authSlise = createSlice({
         store.loading = true;
       })
       .addCase(logOut.fulfilled, (store) => {
-        store.uid = "";
+        store.userId = "";
         store.name = "";
         store.email = "";
         store.error = null;
@@ -70,6 +71,14 @@ const authSlise = createSlice({
         store.error = payload;
         store.loading = false;
         store.isAuth = true;
+      })
+      .addCase(updateUserAvatar.fulfilled, (store, { payload }) => {
+        store.updatedAvatar = payload;
+        console.log("Updated avatar URL:", payload);
+      })
+      .addCase(updateUserAvatar.rejected, (store, { payload }) => {
+        store.error = payload;
+        console.error("Failed to update avatar:", payload);
       });
   },
 });

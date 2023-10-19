@@ -3,6 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
 import * as Location from "expo-location";
 import { Camera } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import {
   TextInput,
@@ -15,21 +16,23 @@ import {
   TouchableOpacity,
   View,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { SvgCamera, SvgLocation, SvgTrash } from "../images/Svg";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useNavigation } from "@react-navigation/native";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchAddedPost } from "../redux/posts/postsOperations";
-import { selectUserId } from "../redux/auth/authSelectors";
+import { useSelector } from "react-redux";
+import { selectUserId, selectUserName } from "../redux/auth/authSelectors";
+import { FIRESTORE_DB, FIRESTORE_STORAGE } from "../firebase/config";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { addDoc, collection } from "firebase/firestore";
 
 const schema = yup.object().shape({
   title: yup.string().required("Введіть назву публікації"),
-  location: yup.string(),
+  photoLocation: yup.string(),
 });
 
 export const CreatePostsScreen = () => {
-  const navigation = useNavigation();
   const {
     control,
     handleSubmit,
@@ -39,23 +42,22 @@ export const CreatePostsScreen = () => {
     resolver: yupResolver(schema),
   });
 
+  const navigation = useNavigation();
+
+  const name = useSelector(selectUserName);
+  const userId = useSelector(selectUserId);
+
+  const [photo, setPhoto] = useState("");
+  const [title, setTitle] = useState("");
+  const [photoLocation, setPhotoLocation] = useState("");
+  const [geolocation, setGeolocation] = useState("");
+
   const [hasPermission, setHasPermission] = useState(null);
   const [cameraRef, setCameraRef] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
-
   const [submitButtonActive, setSubmitButtonActive] = useState(false);
-
   const [isFocusedInput, setIsFocusedInput] = useState(false);
-
-  const [photo, setPhoto] = useState("");
-
-  const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("");
-  const [geolocation, setGeolocation] = useState("");
-
-  const dispatch = useDispatch();
-
-  const uid = useSelector(selectUserId);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isValid && photo) {
@@ -99,23 +101,77 @@ export const CreatePostsScreen = () => {
   const addPhoto = async () => {
     if (cameraRef) {
       const { uri } = await cameraRef.takePictureAsync();
-      dispatch(setPhoto(uri));
       setPhoto(uri);
     }
   };
 
   const resetForm = () => {
     setTitle("");
-    setLocation("");
+    setPhotoLocation("");
     setPhoto("");
     setGeolocation("");
     reset();
   };
 
-  const addUserPost = () => {
-    dispatch(fetchAddedPost({ photo, title, location, geolocation, uid }));
-    resetForm();
-    navigation.navigate("PostsScreen");
+  const addPhotoToFireBase = async () => {
+    const postId = Date.now().toString();
+    console.log(postId);
+
+    try {
+      const blob = await fetch(photo).then((response) => response.blob());
+      const imageRef = ref(FIRESTORE_STORAGE, `postImage/${postId}`);
+
+      await uploadBytes(imageRef, blob);
+
+      const processedPhoto = await getDownloadURL(imageRef);
+
+      return processedPhoto;
+    } catch (error) {
+      console.log("Помилка при завантаженні фото:", error.message);
+      return null;
+    }
+  };
+
+  const addPostToFireBase = async () => {
+    setLoading(true);
+    try {
+      const photo = await addPhotoToFireBase();
+      await addDoc(collection(FIRESTORE_DB, "posts"), {
+        photo,
+        title,
+        photoLocation,
+        geolocation,
+        owner: { userId, name },
+        createdAt: new Date().getTime(),
+      });
+    } catch (error) {
+      console.log("error", error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+      resetForm();
+      navigation.navigate("PostsScreen");
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status === "granted") {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.All,
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 1,
+        });
+        if (!result.canceled) {
+          setPhoto(result.assets[0].uri);
+        }
+      }
+    } catch (error) {
+      console.log("error", error.message);
+    }
   };
 
   return (
@@ -151,11 +207,7 @@ export const CreatePostsScreen = () => {
                 </TouchableOpacity>
               </Camera>
             </View>
-            <TouchableOpacity
-              onPress={() => {
-                setPhoto("");
-              }}
-            >
+            <TouchableOpacity onPress={pickImage}>
               <Text style={styles.text}>
                 {!photo ? "Завантажте фото" : "Редагувати фото"}
               </Text>
@@ -207,10 +259,10 @@ export const CreatePostsScreen = () => {
                           styles.locationInput,
                           isFocusedInput && styles.inputFocused,
                         ]}
-                        value={location}
+                        value={photoLocation}
                         placeholder="Місцевість"
                         onChangeText={(value) => {
-                          setLocation(value);
+                          setPhotoLocation(value);
                           field.onChange(value);
                         }}
                         onFocus={() => setIsFocusedInput(true)}
@@ -227,18 +279,25 @@ export const CreatePostsScreen = () => {
             style={[
               styles.submitBtn,
               !submitButtonActive && styles.submitBtnDisable,
+              loading && styles.submitBtnDisable,
             ]}
-            onPress={handleSubmit(addUserPost)}
-            disabled={!submitButtonActive}
+            onPress={handleSubmit(addPostToFireBase)}
+            disabled={!submitButtonActive || loading}
           >
-            <Text
-              style={[
-                styles.btnTitle,
-                !submitButtonActive && styles.btnTitleDisable,
-              ]}
-            >
-              Опублікувати
-            </Text>
+            {loading ? (
+              <Text style={[styles.btnTitle, styles.btnTitleDisable]}>
+                Завантаження...
+              </Text>
+            ) : (
+              <Text
+                style={[
+                  styles.btnTitle,
+                  !submitButtonActive && styles.btnTitleDisable,
+                ]}
+              >
+                Опублікувати
+              </Text>
+            )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.deleteBtn} onPress={resetForm}>
             <SvgTrash width={24} height={24} />

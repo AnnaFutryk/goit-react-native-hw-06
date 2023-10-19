@@ -16,20 +16,22 @@ import {
 } from "react-native";
 import { Comment } from "../Components/Comment";
 import { SvgPostSubmit } from "../images/Svg";
-import { useDispatch, useSelector } from "react-redux";
-import { selectUser } from "../redux/auth/authSelectors";
-import { selectUserComments } from "../redux/comments/commentsSelectors";
+import { useSelector } from "react-redux";
 import {
-  fetchAddedComment,
-  fetchUserComments,
-} from "../redux/comments/commentsOperations";
-import { useRoute } from "@react-navigation/native";
+  selectUserAvatar,
+  selectUserId,
+  selectUserName,
+} from "../redux/auth/authSelectors";
+import { addDoc, collection, onSnapshot } from "firebase/firestore";
+import { FIRESTORE_DB } from "../firebase/config";
 
 const schema = yup.object().shape({
   comment: yup.string().required("Введіть коментар"),
 });
 
-export const CommentsScreen = () => {
+export const CommentsScreen = ({ route }) => {
+  const { id, url } = route.params;
+
   const {
     control,
     handleSubmit,
@@ -39,38 +41,57 @@ export const CommentsScreen = () => {
     resolver: yupResolver(schema),
   });
 
-  const { avatar, uid } = useSelector(selectUser);
+  const [comment, setComment] = useState("");
+  const [comments, setComments] = useState([]);
 
-  const route = useRoute();
-  const { postImage, postId } = route.params;
-
-  // const { selectedPostImage, selectedPostId } = useSelector(
-  //   (store) => store.posts
-  // );
-
-  const comments = useSelector(
-    (store) => selectUserComments(store, postId) // Передаємо postId для фільтрації коментарів
-  );
-
-  // const postImage = useSelector((store) => store.posts.posts[0]?.photo);
-  // console.log(postImage);//не пішло
-
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(fetchUserComments({ postId, uid }));
-  }, [uid, postId]);
+  const name = useSelector(selectUserName);
+  const avatar = useSelector(selectUserAvatar);
+  const userId = useSelector(selectUserId);
 
   const [isFocusedInput, setIsFocusedInput] = useState(false);
-  const [comment, setComment] = useState("");
 
-  const SubmitComment = () => {
-    dispatch(fetchAddedComment({ comment, uid, postId }));
-    setComment("");
-    reset();
+  const SubmitComment = async () => {
+    if (!comment) {
+      return;
+    }
+    try {
+      await addDoc(collection(FIRESTORE_DB, "posts", id, "comments"), {
+        comment,
+        owner: { userId, name, avatar },
+        createdAt: new Date().getTime(),
+      });
+      setComment("");
+      reset();
+    } catch (error) {
+      console.log(error.code);
+    }
   };
 
-  // console.log("Comments:", comments);
+  // const SubmitComent = ({ comment }) => {
+  //   setComment(comment);
+  //   console.log(comment);
+  //   setComment("");
+  //   reset();
+  // };
+
+  useEffect(() => {
+    const commentsCollection = collection(
+      FIRESTORE_DB,
+      "posts",
+      id,
+      "comments"
+    );
+    onSnapshot(commentsCollection, (querySnapshot) => {
+      const commentsData = querySnapshot.docs.map((doc) => ({
+        commentId: doc.id,
+        ...doc.data(),
+      }));
+      const sortedCommentsData = commentsData.sort(
+        (a, b) => a.createdAt - b.createdAt
+      );
+      setComments(sortedCommentsData);
+    });
+  }, []);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -80,17 +101,27 @@ export const CommentsScreen = () => {
         keyboardVerticalOffset={80}
       >
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Image style={styles.img} source={{ uri: postImage }} />
-
+          <Image style={styles.img} source={{ uri: url ? url : null }} />
           <View style={styles.commentWrapper}>
-            {comments.map((commentData) => (
-              <Comment
-                key={commentData.id}
-                avatar={{ uri: avatar }}
-                text={commentData.comment}
-                date={commentData.date}
-              />
-            ))}
+            {comments.length !== 0 ? (
+              comments.map(({ commentId, comment, owner, createdAt }) => (
+                <Comment
+                  key={commentId}
+                  commentId={commentId}
+                  comment={comment}
+                  owner={owner}
+                  createdAt={createdAt}
+                  style={{
+                    flexDirection:
+                      userId !== owner.userId ? "row" : "row-reverse",
+                  }}
+                />
+              ))
+            ) : (
+              <View style={{ flex: 1, marginTop: 30, paddingHorizontal: 16 }}>
+                <Text style={styles.comment}>Залиште коментар</Text>
+              </View>
+            )}
           </View>
         </ScrollView>
         <View style={styles.formContainer}>
@@ -179,5 +210,11 @@ const styles = StyleSheet.create({
     top: 24,
     width: 34,
     height: 34,
+  },
+  comment: {
+    fontFamily: "Roboto-Regular",
+    fontSize: 14,
+    marginBottom: 18,
+    textAlign: "center",
   },
 });

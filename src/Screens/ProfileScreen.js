@@ -1,9 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 import {
+  FlatList,
   Image,
   ImageBackground,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,28 +13,97 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { ProfilePost } from "../Components/ProfilePost";
-import { SvgAdd, SvgAdded, SvgLogOut } from "../images/Svg";
-import { selectUser } from "../redux/auth/authSelectors";
-import { fetchUserPosts } from "../redux/posts/postsOperations";
-import { selectUserPosts } from "../redux/posts/postsSelectors";
+import { SvgAdded, SvgLogOut } from "../images/Svg";
+import {
+  selectUserAvatar,
+  selectUserId,
+  selectUserName,
+} from "../redux/auth/authSelectors";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { FIRESTORE_DB, FIRESTORE_STORAGE } from "../firebase/config";
+import { updateUserAvatar } from "../redux/auth/authOperations";
+import { Ionicons } from "@expo/vector-icons";
 
 export const ProfileScreen = () => {
   const navigation = useNavigation();
 
-  const { name, avatar, uid } = useSelector(selectUser);
-
   const dispatch = useDispatch();
 
-  const posts = useSelector(selectUserPosts);
-  const selectedPostImage = useSelector(
-    (state) => state.posts.selectedPostImage
-  );
+  const name = useSelector(selectUserName);
+  const avatar = useSelector(selectUserAvatar);
+  const userId = useSelector(selectUserId);
 
-  const [postId, setPostId] = useState("");
+  const [updatedAvatar, setUpdatedAvatar] = useState("");
+  const [changeAvatar, setChangeAvatar] = useState(false);
+
+  const [userPosts, setUserPosts] = useState([]);
 
   useEffect(() => {
-    dispatch(fetchUserPosts(uid));
-  }, [uid]);
+    const postsCollection = collection(FIRESTORE_DB, "posts");
+    const userQuery = query(
+      postsCollection,
+      where("owner.userId", "==", userId)
+    );
+    onSnapshot(userQuery, (data) => {
+      const userPosts = data.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const sortedUserPosts = userPosts.sort(
+        (a, b) => b.createdAt - a.createdAt
+      );
+      setUserPosts(sortedUserPosts);
+    });
+  }, [userId]);
+
+  const pickImage = async () => {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status === "granted") {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.All,
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 1,
+        });
+        if (!result.canceled) {
+          setUpdatedAvatar(result.assets[0].uri);
+          setChangeAvatar(true);
+        }
+      }
+    } catch (error) {
+      console.log("error", error.message);
+    }
+  };
+
+  const addPhotoToFireBase = async () => {
+    const postId = Date.now().toString();
+    console.log("(updatedAvatar)", updatedAvatar);
+    try {
+      const response = await fetch(updatedAvatar);
+      const file = await response.blob();
+      const imageRef = ref(FIRESTORE_STORAGE, `avatars/${postId}`);
+      await uploadBytes(imageRef, file);
+
+      const processedPhoto = await getDownloadURL(imageRef);
+      console.log("URL фото:", processedPhoto);
+      setChangeAvatar(false);
+      return processedPhoto;
+    } catch (error) {
+      console.log("Помилка при завантаженні фото:", error.message);
+      return null;
+    }
+  };
+
+  const addAvatarToFireBase = async () => {
+    const uploadedAvatar = await addPhotoToFireBase();
+    setUpdatedAvatar(uploadedAvatar);
+
+    dispatch(updateUserAvatar(uploadedAvatar)).then((data) => {
+      if (data === undefined || !data.uid) {
+        return;
+      }
+      setChangeAvatar(false);
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -50,43 +121,47 @@ export const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
         <View style={styles.avatar}>
-          {avatar ? (
-            <>
-              <Image source={{ uri: `${avatar}` }} style={styles.avatarImage} />
-              <TouchableOpacity
-                style={styles.addButton}
-                // onPress={deleteAvatar}
-              >
-                <SvgAdded />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <TouchableOpacity
-              style={styles.addButton}
-              // onPress={addAvatar}
-            >
-              <SvgAdd />
+          <Image
+            source={
+              updatedAvatar ? { uri: updatedAvatar } : avatar && { uri: avatar }
+            }
+            style={styles.avatarImage}
+          />
+          {changeAvatar && (
+            <TouchableOpacity onPress={addAvatarToFireBase}>
+              <Ionicons
+                style={styles.checkBtn}
+                name="checkmark-circle"
+                size={36}
+                color={"#FF6C00"}
+              />
             </TouchableOpacity>
           )}
+          <TouchableOpacity style={styles.addButton} onPress={pickImage}>
+            <SvgAdded />
+          </TouchableOpacity>
         </View>
         <Text style={styles.userName}>{name}</Text>
-        <View style={styles.allPostsWrapper}>
-          <ScrollView contentContainerStyle={styles.scroll}>
-            {posts.map((post) => (
+        {userPosts.length !== 0 ? (
+          <FlatList
+            data={userPosts}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
               <ProfilePost
-                key={post.id}
-                image={{ uri: post.photo }}
-                title={post.title}
-                comentQuantity={0} //додати логіку
-                location={post.location}
-                likes={153} //додати логіку
-                selectedPostImage={selectedPostImage}
-                postId={post.id}
-                setPostId={setPostId}
+                id={item.id}
+                title={item.title}
+                photoLocation={item.photoLocation}
+                url={item.photo}
+                geolocation={item.geolocation}
               />
-            ))}
-          </ScrollView>
-        </View>
+            )}
+            style={styles.allPostsWrapper}
+          />
+        ) : (
+          <View style={{ flex: 1, marginTop: 30, paddingHorizontal: 16 }}>
+            <Text style={styles.text}>Зробіть першу публікацію</Text>
+          </View>
+        )}
       </ImageBackground>
     </View>
   );
@@ -132,6 +207,11 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
   },
+  checkBtn: {
+    position: "absolute",
+    right: 100,
+    bottom: 0,
+  },
   addButton: {
     position: "absolute",
     width: 44,
@@ -150,9 +230,12 @@ const styles = StyleSheet.create({
     flex: 1,
     position: "relative",
     marginBottom: 43,
-  },
-  scroll: {
     paddingLeft: 16,
     paddingRight: 16,
+  },
+  text: {
+    fontFamily: "Roboto-Regular",
+    fontSize: 16,
+    textAlign: "center",
   },
 });

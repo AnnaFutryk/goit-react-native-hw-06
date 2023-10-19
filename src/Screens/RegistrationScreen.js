@@ -19,8 +19,12 @@ import { useNavigation } from "@react-navigation/native";
 import { SvgAdd, SvgAdded, SvgCamera } from "../images/Svg";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { signUp } from "../redux/auth/authOperations";
+import { selectIsLoading } from "../redux/auth/authSelectors";
+import { updateUserAvatar } from "../redux/auth/authOperations";
+import { FIRESTORE_STORAGE } from "../firebase/config";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 const validationSchema = object().shape({
   login: string().required("Логін є обов'язковим полем"),
@@ -59,9 +63,10 @@ export const RegistrationScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [avatar, setAvatar] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const [visiblePassword, setVisiblePassword] = useState(false);
+
+  const loading = useSelector(selectIsLoading);
 
   useEffect(() => {
     (async () => {
@@ -86,12 +91,31 @@ export const RegistrationScreen = () => {
     }
   };
 
+  // const addAvatarToFirebase = async () => {
+  //   const postId = Date.now().toString();
+  //   if (avatar) {
+  //     try {
+  //       const response = await fetch(avatar);
+  //       const file = await response.blob();
+  //       const storageRef = ref(FIRESTORE_STORAGE, `avatars/${postId}`);
+  //       await uploadBytes(storageRef, file);
+
+  //       const processedPhoto = await getDownloadURL(storageRef);
+  //       return processedPhoto;
+  //     } catch (error) {
+  //       console.error("Помилка завантаження аватара на Firebase: ", error);
+  //     }
+  //   }
+  // };
+
   const showPassword = () => {
     setVisiblePassword(!visiblePassword);
   };
 
-  const signUpUser = () => {
-    dispatch(signUp({ login, email, password, avatar })).then((response) => {
+  const signUpUser = async () => {
+    // const newAvatarUrl = await addAvatarToFirebase();
+    const registrationData = { login, email, password, avatar };
+    dispatch(signUp(registrationData)).then((response) => {
       response.type === "firebase/signUp/fulfilled" &&
         navigation.navigate("Home", { screen: "PostsScreen" });
     });
@@ -104,145 +128,159 @@ export const RegistrationScreen = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ImageBackground
-        source={require("../images/bg-photo.png")}
-        style={styles.imageBackground}
-        imageStyle={{
-          minHeight: 812,
-        }}
-      >
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+      {loading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color="#FF6C00" />
+          <Text style={styles.registrationTitle}>Loading...</Text>
+        </View>
+      ) : (
+        <ImageBackground
+          source={require("../images/bg-photo.png")}
+          style={styles.imageBackground}
+          imageStyle={{
+            minHeight: 812,
+          }}
         >
-          <View style={styles.avatar}>
-            {showCamera ? (
-              <Camera style={styles.avatarImage} type={type} ref={setCameraRef}>
-                <TouchableOpacity
-                  style={styles.changeCameraType}
-                  onPress={() => {
-                    setType(
-                      type === Camera.Constants.Type.back
-                        ? Camera.Constants.Type.front
-                        : Camera.Constants.Type.back
-                    );
-                  }}
-                />
-                <TouchableOpacity
-                  style={styles.addPhotoBtn}
-                  onPress={addAvatar}
+          <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
+            <View style={styles.avatar}>
+              {showCamera ? (
+                <Camera
+                  style={styles.avatarImage}
+                  type={type}
+                  ref={setCameraRef}
                 >
-                  <SvgCamera />
-                </TouchableOpacity>
-              </Camera>
-            ) : (
-              <>
-                {avatar ? (
-                  <>
-                    <Image
-                      style={styles.previewPhotoContainer}
-                      source={{ uri: avatar }}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setAvatar("")}
-                      style={styles.addedButton}
-                    >
-                      <SvgAdded />
-                    </TouchableOpacity>
-                  </>
-                ) : (
                   <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => setShowCamera(true)}
+                    style={styles.changeCameraType}
+                    onPress={() => {
+                      setType(
+                        type === Camera.Constants.Type.back
+                          ? Camera.Constants.Type.front
+                          : Camera.Constants.Type.back
+                      );
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.addPhotoBtn}
+                    onPress={addAvatar}
                   >
-                    <SvgAdd />
+                    <SvgCamera />
                   </TouchableOpacity>
-                )}
-              </>
-            )}
-          </View>
-
-          <Text style={styles.registrationTitle}>Реєстрація</Text>
-          <View style={styles.formWrapper}>
-            {errors.login && <Text>{errors.login.message}</Text>}
-            <Controller
-              control={control}
-              name="login"
-              render={({ field }) => (
-                <TextInput
-                  style={[styles.input, isLoginFocused && styles.inputFocused]}
-                  placeholder="Логін"
-                  placeholderTextColor={"#BDBDBD"}
-                  value={login}
-                  onChangeText={(value) => {
-                    setLogin(value);
-                    field.onChange(value);
-                  }}
-                  onFocus={() => setIsLoginFocused(true)}
-                  onBlur={() => setIsLoginFocused(false)}
-                />
+                </Camera>
+              ) : (
+                <>
+                  {avatar ? (
+                    <>
+                      <Image
+                        style={styles.previewPhotoContainer}
+                        source={{ uri: avatar }}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setAvatar("")}
+                        style={styles.addedButton}
+                      >
+                        <SvgAdded />
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.addButton}
+                      onPress={() => setShowCamera(true)}
+                    >
+                      <SvgAdd />
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
-            />
+            </View>
 
-            {errors.email && <Text>{errors.email.message}</Text>}
-            <Controller
-              control={control}
-              name="email"
-              render={({ field }) => (
-                <TextInput
-                  style={[styles.input, isEmailFocused && styles.inputFocused]}
-                  placeholder="Адреса електронної пошти"
-                  placeholderTextColor={"#BDBDBD"}
-                  value={email}
-                  onChangeText={(value) => {
-                    setEmail(value);
-                    field.onChange(value);
-                  }}
-                  onFocus={() => setIsEmailFocused(true)}
-                  onBlur={() => setIsEmailFocused(false)}
-                />
-              )}
-            />
-
-            <View style={styles.lastInputWrapper}>
-              {errors.password && <Text>{errors.password.message}</Text>}
+            <Text style={styles.registrationTitle}>Реєстрація</Text>
+            <View style={styles.formWrapper}>
+              {errors.login && <Text>{errors.login.message}</Text>}
               <Controller
                 control={control}
-                name="password"
+                name="login"
                 render={({ field }) => (
                   <TextInput
                     style={[
                       styles.input,
-                      isPasswordFocused && styles.inputFocused,
+                      isLoginFocused && styles.inputFocused,
                     ]}
+                    placeholder="Логін"
                     placeholderTextColor={"#BDBDBD"}
-                    placeholder="Пароль"
-                    value={password}
-                    secureTextEntry={!visiblePassword}
+                    value={login}
                     onChangeText={(value) => {
-                      setPassword(value);
+                      setLogin(value);
                       field.onChange(value);
                     }}
-                    onFocus={() => setIsPasswordFocused(true)}
-                    onBlur={() => setIsPasswordFocused(false)}
+                    onFocus={() => setIsLoginFocused(true)}
+                    onBlur={() => setIsLoginFocused(false)}
                   />
                 )}
               />
 
-              <TouchableOpacity
-                style={styles.showPasswordButton}
-                onPress={showPassword}
-              >
-                <Text style={styles.showPasswordText}>
-                  {!visiblePassword ? "Показати" : "Приховати"}
-                </Text>
-              </TouchableOpacity>
+              {errors.email && <Text>{errors.email.message}</Text>}
+              <Controller
+                control={control}
+                name="email"
+                render={({ field }) => (
+                  <TextInput
+                    style={[
+                      styles.input,
+                      isEmailFocused && styles.inputFocused,
+                    ]}
+                    placeholder="Адреса електронної пошти"
+                    placeholderTextColor={"#BDBDBD"}
+                    value={email}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      field.onChange(value);
+                    }}
+                    onFocus={() => setIsEmailFocused(true)}
+                    onBlur={() => setIsEmailFocused(false)}
+                  />
+                )}
+              />
+
+              <View style={styles.lastInputWrapper}>
+                {errors.password && <Text>{errors.password.message}</Text>}
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field }) => (
+                    <TextInput
+                      style={[
+                        styles.input,
+                        isPasswordFocused && styles.inputFocused,
+                      ]}
+                      placeholderTextColor={"#BDBDBD"}
+                      placeholder="Пароль"
+                      value={password}
+                      secureTextEntry={!visiblePassword}
+                      onChangeText={(value) => {
+                        setPassword(value);
+                        field.onChange(value);
+                      }}
+                      onFocus={() => setIsPasswordFocused(true)}
+                      onBlur={() => setIsPasswordFocused(false)}
+                    />
+                  )}
+                />
+
+                <TouchableOpacity
+                  style={styles.showPasswordButton}
+                  onPress={showPassword}
+                >
+                  <Text style={styles.showPasswordText}>
+                    {!visiblePassword ? "Показати" : "Приховати"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-        {loading ? (
-          <ActivityIndicator size="large" color="#0000ff" />
-        ) : (
+          </KeyboardAvoidingView>
+
           <View style={styles.BtnWrap}>
             <TouchableOpacity
               style={styles.registrationButton}
@@ -256,13 +294,17 @@ export const RegistrationScreen = () => {
               </Text>
             </TouchableOpacity>
           </View>
-        )}
-      </ImageBackground>
+        </ImageBackground>
+      )}
     </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
+  loading: {
+    marginTop: 100,
+    marginBottom: 20,
+  },
   imageBackground: {
     flex: 1,
     position: "relative",

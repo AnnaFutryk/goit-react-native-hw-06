@@ -15,8 +15,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { signIn } from "../redux/auth/authOperations";
+import { selectIsLoading } from "../redux/auth/authSelectors";
 
 const validationSchema = object().shape({
   email: string()
@@ -45,9 +46,10 @@ export const LoginScreen = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const [visiblePassword, setVisiblePassword] = useState(false);
+
+  const loading = useSelector(selectIsLoading);
 
   const showPassword = () => {
     setVisiblePassword(!visiblePassword);
@@ -82,77 +84,84 @@ export const LoginScreen = () => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ImageBackground
-        source={require("../images/bg-photo.png")}
-        style={styles.imageBackground}
-        imageStyle={{
-          minHeight: 812,
-        }}
-      >
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+      {loading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color="#FF6C00" />
+          <Text style={styles.loginTitle}>Loading...</Text>
+        </View>
+      ) : (
+        <ImageBackground
+          source={require("../images/bg-photo.png")}
+          style={styles.imageBackground}
+          imageStyle={{
+            minHeight: 812,
+          }}
         >
-          <Text style={styles.loginTitle}>Увійти</Text>
-          <View style={styles.formWrapper}>
-            {errors.email && <Text>{errors.email.message}</Text>}
-            <Controller
-              control={control}
-              name="email"
-              render={({ field }) => (
-                <TextInput
-                  style={[styles.input, isEmailFocused && styles.inputFocused]}
-                  placeholder="Адреса електронної пошти"
-                  placeholderTextColor={"#BDBDBD"}
-                  value={email}
-                  onChangeText={(value) => {
-                    setEmail(value);
-                    field.onChange(value);
-                  }}
-                  onFocus={() => setIsEmailFocused(true)}
-                  onBlur={() => setIsEmailFocused(false)}
-                />
-              )}
-            />
-
-            <View style={styles.lastInputWrapper}>
-              {errors.password && <Text>{errors.password.message}</Text>}
+          <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
+            <Text style={styles.loginTitle}>Увійти</Text>
+            <View style={styles.formWrapper}>
+              {errors.email && <Text>{errors.email.message}</Text>}
               <Controller
                 control={control}
-                name="password"
+                name="email"
                 render={({ field }) => (
                   <TextInput
                     style={[
                       styles.input,
-                      isPasswordFocused && styles.inputFocused,
+                      isEmailFocused && styles.inputFocused,
                     ]}
+                    placeholder="Адреса електронної пошти"
                     placeholderTextColor={"#BDBDBD"}
-                    placeholder="Пароль"
-                    value={password}
-                    secureTextEntry={!visiblePassword}
+                    value={email}
                     onChangeText={(value) => {
-                      setPassword(value);
+                      setEmail(value);
                       field.onChange(value);
                     }}
-                    onFocus={() => setIsPasswordFocused(true)}
-                    onBlur={() => setIsPasswordFocused(false)}
+                    onFocus={() => setIsEmailFocused(true)}
+                    onBlur={() => setIsEmailFocused(false)}
                   />
                 )}
               />
-              <TouchableOpacity
-                style={styles.showPasswordButton}
-                onPress={showPassword}
-              >
-                <Text style={styles.showPasswordText}>
-                  {!visiblePassword ? "Показати" : "Приховати"}
-                </Text>
-              </TouchableOpacity>
+
+              <View style={styles.lastInputWrapper}>
+                {errors.password && <Text>{errors.password.message}</Text>}
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field }) => (
+                    <TextInput
+                      style={[
+                        styles.input,
+                        isPasswordFocused && styles.inputFocused,
+                      ]}
+                      placeholderTextColor={"#BDBDBD"}
+                      placeholder="Пароль"
+                      value={password}
+                      secureTextEntry={!visiblePassword}
+                      onChangeText={(value) => {
+                        setPassword(value);
+                        field.onChange(value);
+                      }}
+                      onFocus={() => setIsPasswordFocused(true)}
+                      onBlur={() => setIsPasswordFocused(false)}
+                    />
+                  )}
+                />
+                <TouchableOpacity
+                  style={styles.showPasswordButton}
+                  onPress={showPassword}
+                >
+                  <Text style={styles.showPasswordText}>
+                    {!visiblePassword ? "Показати" : "Приховати"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-        {loading ? (
-          <ActivityIndicator size="large" color="#0000ff" />
-        ) : (
+          </KeyboardAvoidingView>
+
           <View style={styles.LoginBtnWrap}>
             <TouchableOpacity
               style={styles.registrationButton}
@@ -169,13 +178,15 @@ export const LoginScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-        )}
-      </ImageBackground>
+        </ImageBackground>
+      )}
     </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
+  loading: { marginTop: 100 },
+
   imageBackground: {
     flex: 1,
     position: "relative",
