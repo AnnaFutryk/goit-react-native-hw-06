@@ -16,7 +16,6 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    // Додайте нову дію для оновлення newAvatarUrl
     updateNewAvatarUrl: (store, action) => {
       store.avatar = action.payload;
     },

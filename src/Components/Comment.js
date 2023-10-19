@@ -1,12 +1,8 @@
 import moment from "moment";
 import "moment/locale/uk";
 import { Image, StyleSheet, Text, View } from "react-native";
-import { useSelector } from "react-redux";
-import { selectUserId } from "../redux/auth/authSelectors";
 
 export const Comment = ({ comment, owner, createdAt, style }) => {
-  const userId = useSelector(selectUserId);
-
   return (
     <View style={styles.wrapper}>
       <View style={styles.commentsBlock}>

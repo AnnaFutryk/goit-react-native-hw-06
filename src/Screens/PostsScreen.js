@@ -51,16 +51,16 @@ export const PostsScreen = () => {
     });
   };
 
-  const getUpdatedAvatarUrl = async () => {
-    const storageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
-    try {
-      const downloadURL = await getDownloadURL(storageRef);
-      return downloadURL;
-    } catch (error) {
-      console.error("Помилка при отриманні URL оновленої аватарки", error);
-      return null;
-    }
-  };
+  // const getUpdatedAvatarUrl = async () => {
+  //   const storageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
+  //   try {
+  //     const downloadURL = await getDownloadURL(storageRef);
+  //     return downloadURL;
+  //   } catch (error) {
+  //     console.error("Помилка при отриманні URL оновленої аватарки", error);
+  //     return null;
+  //   }
+  // };
 
   useEffect(() => {
     fetchPosts();
