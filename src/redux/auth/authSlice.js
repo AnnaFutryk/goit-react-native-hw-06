@@ -1,12 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { signUp, signIn, logOut, updateUserAvatar } from "./authOperations";
+import { signUp, signIn, logOut } from "./authOperations";
 
 const initialState = {
   userId: "",
   name: "",
   email: "",
   avatar: "",
-  newAvatarUrl: "",
+  updatedAvatar: "",
   isAuth: false,
   error: null,
   loading: false,
@@ -32,7 +32,7 @@ const authSlice = createSlice({
         store.name = displayName;
         store.email = email;
         store.avatar = photoURL;
-        store.newAvatarUrl = photoURL;
+        store.updatedAvatar = photoURL;
         store.error = null;
         store.loading = false;
         store.isAuth = true;
@@ -52,7 +52,7 @@ const authSlice = createSlice({
         store.name = displayName;
         store.email = email;
         store.avatar = profilePicture;
-        store.newAvatarUrl = profilePicture;
+        store.updatedAvatar = profilePicture;
         store.error = null;
         store.loading = false;
         store.isAuth = true;
@@ -78,15 +78,6 @@ const authSlice = createSlice({
         store.error = payload;
         store.loading = false;
         store.isAuth = true;
-      })
-      .addCase(updateUserAvatar.fulfilled, (store, { payload }) => {
-        store.avatar = payload;
-        store.newAvatarUrl = payload;
-        console.log("Updated avatar URL from slice:", payload);
-      })
-      .addCase(updateUserAvatar.rejected, (store, { payload }) => {
-        store.error = payload;
-        console.error("Failed to update avatar:", payload);
       });
   },
 });

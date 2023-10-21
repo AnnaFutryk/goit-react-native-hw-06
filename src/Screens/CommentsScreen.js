@@ -67,13 +67,6 @@ export const CommentsScreen = ({ route }) => {
     }
   };
 
-  // const SubmitComent = ({ comment }) => {
-  //   setComment(comment);
-  //   console.log(comment);
-  //   setComment("");
-  //   reset();
-  // };
-
   useEffect(() => {
     const commentsCollection = collection(
       FIRESTORE_DB,

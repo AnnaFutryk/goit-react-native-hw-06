@@ -1,5 +1,4 @@
 import { collection, onSnapshot } from "firebase/firestore";
-import { getDownloadURL, ref } from "firebase/storage";
 import { useEffect, useState } from "react";
 import {
   View,
@@ -9,9 +8,9 @@ import {
   RefreshControl,
   FlatList,
 } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { Post } from "../Components/Post";
-import { FIRESTORE_DB, FIRESTORE_STORAGE } from "../firebase/config";
+import { FIRESTORE_DB } from "../firebase/config";
 import {
   selectUpdatedAvatar,
   selectUser,
@@ -21,13 +20,11 @@ import {
 } from "../redux/auth/authSelectors";
 
 export const PostsScreen = () => {
-  const dispatch = useDispatch();
   const name = useSelector(selectUserName);
   const { email } = useSelector(selectUser);
   const avatar = useSelector(selectUserAvatar);
+
   const updatedAvatar = useSelector(selectUpdatedAvatar);
-  // const [updatedAvatar, setUpdatedAvatar] = useState(null);
-  const newAvatarUrl = useSelector((store) => store.auth.newAvatarUrl);
 
   const userId = useSelector(selectUserId);
 
@@ -51,17 +48,6 @@ export const PostsScreen = () => {
     });
   };
 
-  // const getUpdatedAvatarUrl = async () => {
-  //   const storageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
-  //   try {
-  //     const downloadURL = await getDownloadURL(storageRef);
-  //     return downloadURL;
-  //   } catch (error) {
-  //     console.error("Помилка при отриманні URL оновленої аватарки", error);
-  //     return null;
-  //   }
-  // };
-
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -79,7 +65,7 @@ export const PostsScreen = () => {
           {avatar ? (
             <Image style={styles.userAvatar} source={{ uri: avatar }} />
           ) : (
-            <Image style={styles.userAvatar} source={{ uri: newAvatarUrl }} />
+            <Image style={styles.userAvatar} source={{ uri: updatedAvatar }} />
           )}
         </View>
         <View>

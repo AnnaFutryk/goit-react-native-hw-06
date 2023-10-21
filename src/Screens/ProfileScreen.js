@@ -20,11 +20,16 @@ import {
   selectUserName,
 } from "../redux/auth/authSelectors";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { FIRESTORE_DB, FIRESTORE_STORAGE } from "../firebase/config";
-import { updateUserAvatar } from "../redux/auth/authOperations";
+import {
+  FIREBASE_AUTH,
+  FIRESTORE_DB,
+  FIRESTORE_STORAGE,
+} from "../firebase/config";
+import { updateUserProfile } from "../redux/auth/authOperations";
 
 import { Ionicons } from "@expo/vector-icons";
 import { updateNewAvatarUrl } from "../redux/auth/authSlice";
+import { updateProfile } from "firebase/auth";
 
 export const ProfileScreen = () => {
   const navigation = useNavigation();
@@ -76,40 +81,35 @@ export const ProfileScreen = () => {
     }
   };
 
-  const addPhotoToFireBase = async () => {
-    const postId = Date.now().toString();
-    console.log("updatedAvatar", updatedAvatar);
-    try {
-      const response = await fetch(updatedAvatar);
-      const file = await response.blob();
-      const imageRef = ref(FIRESTORE_STORAGE, `avatars/${postId}`);
-      await uploadBytes(imageRef, file);
-
-      const processedPhoto = await getDownloadURL(imageRef);
-      console.log("URL фото from profileScr:", processedPhoto);
-      setChangeAvatar(false);
-      return processedPhoto;
-    } catch (error) {
-      console.log("Помилка при завантаженні фото:", error.message);
-      return null;
-    }
-  };
-
   const addAvatarToFireBase = async () => {
-    const uploadedAvatar = await addPhotoToFireBase();
-    if (uploadedAvatar) {
-      // Оновити аватар в Firebase
-      dispatch(updateUserAvatar({ userId, newAvatarUrl: uploadedAvatar })).then(
-        (data) => {
-          if (data.meta.requestStatus === "fulfilled") {
-            // Оновити newAvatarUrl в Redux
-            dispatch(updateNewAvatarUrl(uploadedAvatar));
-          } else {
-            console.error("Failed to update user avatar:", data.error);
-          }
-        }
-      );
-      setChangeAvatar(false);
+    if (updatedAvatar) {
+      try {
+        const response = await fetch(updatedAvatar);
+        const file = await response.blob();
+        const imageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
+        await uploadBytes(imageRef, file);
+
+        const processedPhoto = await getDownloadURL(imageRef);
+
+        // Оновити аватар в Firebase Auth
+        await updateProfile(FIREBASE_AUTH.currentUser, {
+          photoURL: processedPhoto,
+        });
+
+        // Оновити профіль користувача в Firestore
+        await updateUserProfile(userId, processedPhoto);
+
+        // Оновити аватарку в Redux Store
+        dispatch(updateNewAvatarUrl(processedPhoto));
+
+        // setUpdatedAvatar(processedPhoto)
+        setChangeAvatar(false);
+      } catch (error) {
+        console.error(
+          "Помилка при завантаженні або оновленні аватара: ",
+          error
+        );
+      }
     }
   };
 

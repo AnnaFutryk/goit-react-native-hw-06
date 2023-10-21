@@ -1,11 +1,11 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { FIREBASE_AUTH, FIRESTORE_STORAGE } from "../../firebase/config";
+import { FIREBASE_AUTH, FIRESTORE_DB } from "../../firebase/config";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 
 const auth = FIREBASE_AUTH;
 
@@ -17,15 +17,28 @@ export const signUp = createAsyncThunk(
       const response = await createUserWithEmailAndPassword(
         auth,
         email,
-        password,
-        avatar
+        password
       );
-      response &&
-        (await updateProfile(auth.currentUser, {
-          displayName: login,
-          photoURL: avatar,
-        }));
-      return response.user;
+
+      if (response) {
+        const user = auth.currentUser;
+        if (user) {
+          // Створити документ користувача в Firestore
+          const userRef = doc(FIRESTORE_DB, "users", user.uid);
+          await setDoc(userRef, {
+            login,
+            avatar,
+          });
+
+          // Оновити профіль користувача в Firebase Auth
+          await updateProfile(user, {
+            displayName: login,
+            photoURL: avatar,
+          });
+        }
+
+        return response.user;
+      }
     } catch (error) {
       return thunkAPI.rejectWithValue(alert("Sign in failed:" + error.message));
     }
@@ -45,6 +58,18 @@ export const signIn = createAsyncThunk(
   }
 );
 
+export const updateUserProfile = async (userId, avatarUrl) => {
+  const userRef = doc(FIRESTORE_DB, "users", userId);
+  try {
+    await updateDoc(userRef, {
+      avatar: avatarUrl,
+    });
+    console.log("Профіль користувача успішно оновлено в Firestore");
+  } catch (error) {
+    console.error("Помилка при оновленні профілю користувача: ", error);
+  }
+};
+
 export const logOut = createAsyncThunk(
   "firebase/logOut",
   async (_, thunkAPI) => {
@@ -53,29 +78,6 @@ export const logOut = createAsyncThunk(
       return response;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.message);
-    }
-  }
-);
-
-export const updateUserAvatar = createAsyncThunk(
-  "firebase/updateUserAvatar",
-  async (data, thunkAPI) => {
-    try {
-      const { userId, newAvatarUrl } = data;
-
-      const imageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
-      await uploadBytes(imageRef, newAvatarUrl);
-
-      const avatarUrl = await getDownloadURL(imageRef);
-
-      await updateProfile(auth.currentUser, { photoURL: avatarUrl });
-      console.log("updated from operations");
-
-      return avatarUrl;
-    } catch (error) {
-      return thunkAPI.rejectWithValue(
-        alert("Update user avatar failed: ", error.message)
-      );
     }
   }
 );

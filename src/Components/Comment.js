@@ -1,15 +1,21 @@
 import moment from "moment";
 import "moment/locale/uk";
 import { Image, StyleSheet, Text, View } from "react-native";
+import { useSelector } from "react-redux";
+import { selectUpdatedAvatar } from "../redux/auth/authSelectors";
 
 export const Comment = ({ comment, owner, createdAt, style }) => {
+  const updatedAvatar = useSelector(selectUpdatedAvatar);
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.commentsBlock}>
         <View style={[styles.commentItem, style]}>
           <Image
             style={styles.commentAva}
-            source={owner.avatar && { uri: owner.avatar }}
+            source={
+              owner.avatar ? { uri: owner.avatar } : { uri: updatedAvatar }
+            }
           />
           <View style={styles.commentTxtPart}>
             <Text style={styles.text}>{comment}</Text>

@@ -22,9 +22,6 @@ import * as MediaLibrary from "expo-media-library";
 import { useDispatch, useSelector } from "react-redux";
 import { signUp } from "../redux/auth/authOperations";
 import { selectIsLoading } from "../redux/auth/authSelectors";
-// import { updateUserAvatar } from "../redux/auth/authOperations";
-// import { FIRESTORE_STORAGE } from "../firebase/config";
-// import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 const validationSchema = object().shape({
   login: string().required("Логін є обов'язковим полем"),
@@ -91,29 +88,11 @@ export const RegistrationScreen = () => {
     }
   };
 
-  // const addAvatarToFirebase = async () => {
-  //   const postId = Date.now().toString();
-  //   if (avatar) {
-  //     try {
-  //       const response = await fetch(avatar);
-  //       const file = await response.blob();
-  //       const storageRef = ref(FIRESTORE_STORAGE, `avatars/${postId}`);
-  //       await uploadBytes(storageRef, file);
-
-  //       const processedPhoto = await getDownloadURL(storageRef);
-  //       return processedPhoto;
-  //     } catch (error) {
-  //       console.error("Помилка завантаження аватара на Firebase: ", error);
-  //     }
-  //   }
-  // };
-
   const showPassword = () => {
     setVisiblePassword(!visiblePassword);
   };
 
   const signUpUser = async () => {
-    // const newAvatarUrl = await addAvatarToFirebase();
     const registrationData = { login, email, password, avatar };
     dispatch(signUp(registrationData)).then((response) => {
       response.type === "firebase/signUp/fulfilled" &&
