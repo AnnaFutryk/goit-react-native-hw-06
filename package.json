@@ -16,6 +16,7 @@
     "@react-navigation/native": "^6.1.7",
     "@react-navigation/stack": "^6.3.17",
     "@reduxjs/toolkit": "^1.9.5",
+    "eas-cli": "^5.4.0",
     "expo": "~49.0.7",
     "expo-camera": "~13.4.4",
     "expo-font": "~11.4.0",
@@ -36,7 +37,8 @@
     "react-redux": "^8.1.2",
     "redux-persist": "^6.0.0",
     "uuid": "^9.0.1",
-    "yup": "^1.2.0"
+    "yup": "^1.2.0",
+    "expo-dev-client": "~2.4.11"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

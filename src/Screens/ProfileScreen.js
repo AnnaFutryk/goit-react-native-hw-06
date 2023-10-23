@@ -3,6 +3,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   ImageBackground,
@@ -42,6 +43,8 @@ export const ProfileScreen = () => {
 
   const [updatedAvatar, setUpdatedAvatar] = useState("");
   const [changeAvatar, setChangeAvatar] = useState(false);
+
+  const [loadingAvatar, setLoadingAvatar] = useState(false);
 
   const [userPosts, setUserPosts] = useState([]);
 
@@ -84,6 +87,7 @@ export const ProfileScreen = () => {
   const addAvatarToFireBase = async () => {
     if (updatedAvatar) {
       try {
+        setLoadingAvatar(true);
         const response = await fetch(updatedAvatar);
         const file = await response.blob();
         const imageRef = ref(FIRESTORE_STORAGE, `avatars/${userId}`);
@@ -109,6 +113,8 @@ export const ProfileScreen = () => {
           "Помилка при завантаженні або оновленні аватара: ",
           error
         );
+      } finally {
+        setLoadingAvatar(false);
       }
     }
   };
@@ -129,13 +135,23 @@ export const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
         <View style={styles.avatar}>
-          <Image
-            source={
-              updatedAvatar ? { uri: updatedAvatar } : avatar && { uri: avatar }
-            }
-            style={styles.avatarImage}
-          />
-          {changeAvatar && (
+          {loadingAvatar ? (
+            <ActivityIndicator
+              size="large"
+              color="#FF6C00"
+              style={styles.loadingAvatar}
+            />
+          ) : (
+            <Image
+              source={
+                updatedAvatar
+                  ? { uri: updatedAvatar }
+                  : avatar && { uri: avatar }
+              }
+              style={styles.avatarImage}
+            />
+          )}
+          {!loadingAvatar && changeAvatar && (
             <TouchableOpacity onPress={addAvatarToFireBase}>
               <Ionicons
                 style={styles.checkBtn}
@@ -150,6 +166,7 @@ export const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
         <Text style={styles.userName}>{name}</Text>
+
         {userPosts.length !== 0 ? (
           <FlatList
             data={userPosts}
@@ -245,5 +262,9 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto-Regular",
     fontSize: 16,
     textAlign: "center",
+  },
+  loadingAvatar: {
+    marginTop: "auto",
+    marginBottom: "auto",
   },
 });
